@@ -1,0 +1,7 @@
+/bugsnag
+
+# CI test output.
+/test-results/
+
+# Golden-test output written when a test is run with -update.
+*.golden.new

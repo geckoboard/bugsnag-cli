@@ -1,0 +1,44 @@
+version: 2.1
+
+workflows:
+  on-commit:
+    jobs:
+      - test
+
+jobs:
+  test:
+    docker:
+      - image: cimg/go:1.25
+        environment:
+          CGO_ENABLED: 0
+    steps:
+      - checkout
+      - run: mkdir -p ./test-results
+      - run:
+          name: Run tests
+          # -race because the config file is written under a lock and the tests
+          # exercise that concurrently. -shuffle=on because the suite is meant to
+          # have no order dependence: there is no viper, no package-level cobra
+          # command and no os.Setenv, so every test runs in parallel.
+          #
+          # gotestsum is pinned in go.mod as a tool dependency, so this needs no
+          # install step and CI runs the same version as a developer does.
+          command: make test JUNIT=test-results/junit.xml
+      # Every step below runs whatever the ones before it did, so one commit
+      # produces every failure at once rather than hiding the lint error behind a
+      # test failure and needing a second push to find it.
+      - run:
+          name: Lint
+          when: always
+          command: make lint
+      - run:
+          name: Verify codegen
+          when: always
+          # Regenerates the client and fails on any diff. This is the only thing
+          # stopping someone hand-editing client.gen.go, and it also catches an
+          # upstream spec change that makes an overlay action a no-op, because the
+          # overlay is applied with strict: true.
+          command: make verify-codegen
+      - store_test_results:
+          path: test-results
+          when: always
