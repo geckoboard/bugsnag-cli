@@ -1,0 +1,38 @@
+# Generated client config. Run `go generate ./...` (see doc.go) after changing
+# this file or the spec, and `make verify-codegen` to prove the committed
+# output matches.
+package: bugsnagapi
+output: client.gen.go
+
+generate:
+  models: true
+  client: true
+
+output-options:
+  # Pruning is what keeps this at ~140 types instead of all 296 schemas in the
+  # spec: only the operations listed below and the schemas they reach survive.
+  include-operation-ids:
+    # auth login / org
+    - listUserOrganizations
+    - getOrganizationProjects
+    # errors
+    - listProjectErrors
+    - viewErrorOnProject
+    - getBucketedAndUnbucketedTrendsOnError
+    # events, which hang off an error rather than a noun of their own
+    - listEventsOnError
+    - viewEventById
+    - viewLatestEventOnError
+    # filter discovery
+    - listProjectEventFields
+    # not wired to commands, but generated so adding them is view code only
+    - listEventsOnProject
+    - listPivotsOnAnError
+    - getProjectStabilityTrend
+    - listProjectReleases
+    - listCommentsOnError
+    - createCommentOnError
+
+  overlay:
+    path: ../../api/openapi/overlay.yaml
+    strict: true

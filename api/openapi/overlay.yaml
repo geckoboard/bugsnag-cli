@@ -1,0 +1,209 @@
+# OpenAPI Overlay 1.0.0 patches applied to the vendored spec before codegen.
+#
+# The spec itself is vendored byte-for-byte from
+#   https://api.swaggerhub.com/apis/smartbear-public/bugsnag-data-access-api/2/swagger.yaml
+# so it can be refreshed with `make update-spec` and diffed cleanly. Every
+# deviation we need lives here instead.
+#
+# Applied with strict: true, so a spec refresh that makes any action below a
+# no-op fails the build loudly rather than silently dropping the patch.
+overlay: 1.0.0
+x-speakeasy-jsonpath: rfc9535
+info:
+  title: bugsnag-cli patches to the Bugsnag Data Access API spec
+  version: 1.0.0
+
+actions:
+  # 1. Drop the filter query parameters entirely.
+  #
+  # oapi-codegen emits form+explode serialisation for these object-typed
+  # params, which flattens to `error.status=<json>` — nothing like the
+  # `filters[error.status][][type]=eq` bracket syntax the API actually wants.
+  # The generated encoder is unusable, so we remove the params and hand-roll
+  # the encoder in internal/filters instead.
+  #
+  # Removing them also prunes the Filters schema and its 36 sub-schemas, which
+  # incidentally moots the capital-A AdditionalProperties bug and the
+  # `error.has_issue` property name collision without patching either.
+  - target: $.paths.*.*.parameters[?@.name=="filters"]
+    remove: true
+  - target: $.paths.*.*.parameters[?@.name=="filter_groups"]
+    remove: true
+  - target: $.paths.*.*.parameters[?@.name=="filter_groups_join"]
+    remove: true
+
+  # 2. column_number is an integer in practice, not a string.
+  #
+  # Verified live: a Node event returns `"column_number": 13`. Left as the
+  # spec's `type: string` it hard-fails unmarshalling for every JS/Node event
+  # and takes the whole text path down with it.
+  - target: $.components.schemas._EventExceptionStacktrace.properties.column_number
+    update:
+      type: integer
+
+  # 3. line_number likewise. `type: number` generates *float32, which is the
+  # wrong type for a line number and renders badly in the `path:line · method`
+  # frame format.
+  - target: $.components.schemas._EventExceptionStacktrace.properties.line_number
+    update:
+      type: integer
+
+  # 4. The same two fields again, on the camelCase frame schema.
+  #
+  # The spec models stack frames twice: _EventExceptionStacktrace uses
+  # snake_case keys (full event reports) and _CoreFrameFields uses camelCase
+  # (the thin list projection). Both reach the renderer, so patching only one
+  # leaves Node events failing to unmarshal on whichever path uses the other.
+  - target: $.components.schemas._CoreFrameFields.properties.columnNumber
+    update:
+      type: integer
+  - target: $.components.schemas._CoreFrameFields.properties.lineNumber
+    update:
+      type: integer
+
+  # 5. Pagination params are integers, not floats. `type: number` generates
+  # *float32 for values that are always whole counts.
+  - target: $.paths.*.*.parameters[?@.name=="per_page"].schema
+    update:
+      type: integer
+  - target: $.paths.*.*.parameters[?@.name=="offset"].schema
+    update:
+      type: integer
+
+  # 6. Counts are integers, not float32.
+  #
+  # The spec types every count as `type: number`, which oapi-codegen maps to
+  # *float32 — exact only up to 2^24 (16,777,216). ErrorApiView.events and
+  # unthrottled_occurrence_count are the two headline numbers the error view
+  # prints as "N (May 29 – Jul 28) · M all-time", and PivotApiView.cardinality is
+  # the Summaries "Distinct" column. Rendering any of those rounded would misinform
+  # in exactly the way this tool exists to avoid, so they become Go int (64-bit
+  # on every platform we build for).
+  - target: $.components.schemas.ErrorApiView.allOf[1].properties.events
+    update:
+      type: integer
+  - target: $.components.schemas.ErrorApiView.allOf[1].properties.unthrottled_occurrence_count
+    update:
+      type: integer
+  - target: $.components.schemas.ErrorApiView.allOf[1].properties.users
+    update:
+      type: integer
+  - target: $.components.schemas.ErrorApiView.allOf[1].properties.comment_count
+    update:
+      type: integer
+  - target: $.components.schemas.PivotApiView.properties.cardinality
+    update:
+      type: integer
+  - target: $.components.schemas.PivotApiView.properties.no_value
+    update:
+      type: integer
+  - target: $.components.schemas.PivotApiView.properties.other
+    update:
+      type: integer
+  - target: $.components.schemas.PivotApiView.properties.list.items.properties.events
+    update:
+      type: integer
+  - target: $.components.schemas.ProjectApiView.allOf[1].properties.collaborators_count
+    update:
+      type: integer
+  - target: $.components.schemas.ProjectApiView.allOf[1].properties.custom_event_fields_used
+    update:
+      type: integer
+  - target: $.components.schemas.ProjectApiView.allOf[1].properties.for_review_error_count
+    update:
+      type: integer
+  - target: $.components.schemas.ProjectApiView.allOf[1].properties.open_error_count
+    update:
+      type: integer
+  - target: $.components.schemas.ProjectApiView.allOf[1].properties.teams_count
+    update:
+      type: integer
+  - target: $.components.schemas.ErrorReopenRules.properties.additional_occurrences
+    update:
+      type: integer
+  - target: $.components.schemas.ErrorReopenRules.properties.additional_users
+    update:
+      type: integer
+  - target: $.components.schemas.ErrorReopenRules.properties.hours
+    update:
+      type: integer
+  - target: $.components.schemas.ErrorReopenRules.properties.occurrences
+    update:
+      type: integer
+  - target: $.components.schemas.ErrorReopenRules.properties.occurrence_threshold
+    update:
+      type: integer
+  - target: $.components.schemas.ErrorReopenRules.properties.seconds
+    update:
+      type: integer
+  - target: $.components.schemas.ErrorCreatedIssue.properties.number
+    update:
+      type: integer
+  - target: $.components.schemas.User.properties.recovery_codes_remaining
+    update:
+      type: integer
+  - target: $.components.schemas._EventApp.properties.duration
+    update:
+      type: integer
+  - target: $.components.schemas._EventApp.properties.durationInForeground
+    update:
+      type: integer
+  - target: $.components.schemas._EventApp.properties.versionCode
+    update:
+      type: integer
+  - target: $.components.schemas._EventDevice.properties.freeDisk
+    update:
+      type: integer
+  - target: $.components.schemas._EventDevice.properties.freeMemory
+    update:
+      type: integer
+  - target: $.components.schemas._EventDevice.properties.totalMemory
+    update:
+      type: integer
+  - target: $.components.schemas._EventExceptionRegister.properties.frame_index
+    update:
+      type: integer
+  - target: $.components.schemas._EventThread.properties.id
+    update:
+      type: integer
+  - target: $.paths.*.*.parameters[?@.name=="buckets_count"].schema
+    update:
+      type: integer
+  - target: $.paths.*.*.parameters[?@.name=="summary_size"].schema
+    update:
+      type: integer
+
+  # 7. Fields that really are fractional get float64 rather than float32.
+  #
+  # These three are genuinely non-integral, so they stay floats — but *float32
+  # is still the wrong choice for a value we may print, so widen them via
+  # `format: double`.
+  - target: $.components.schemas.PivotApiView.properties.average
+    update:
+      format: double
+  - target: $.components.schemas.EventField.properties.reindex_percentage
+    update:
+      format: double
+  - target: $.components.schemas._EventDevice.properties.batteryLevel
+    update:
+      format: double
+  - target: $.components.schemas.StabilityTarget.properties.value
+    update:
+      format: double
+
+  # 8. Replace the server list with the two real hosts, api.bugsnag.com first.
+  #
+  # Upstream lists two SwaggerHub auto-mocking servers, one of them first.
+  # oapi-codegen's NewClient takes the base URL as an argument rather than
+  # baking in servers[0], so today this changes no generated code — the host we
+  # actually talk to comes from config and is checked against the allowlist in
+  # internal/transport. This is here so the vendored spec is not itself a
+  # document that points at a mock, and so a future generator that does honour
+  # servers[0] cannot quietly aim the CLI at virtserver.swaggerhub.com.
+  - target: $
+    update:
+      servers:
+        - url: https://api.bugsnag.com
+          description: For organizations with projects on app.bugsnag.com
+        - url: https://api.bugsnag.smartbear.com
+          description: For organizations with projects on app.bugsnag.smartbear.com
