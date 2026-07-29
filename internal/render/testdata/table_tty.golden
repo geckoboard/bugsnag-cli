@@ -1,0 +1,4 @@
+ Pivot          │ Top value    │ Share │ Distinct
+────────────────┼──────────────┼───────┼─────────
+ Release stages │ production   │ 57.4% │        2
+ Hosts          │ 230838611af3 │  7.1% │       85

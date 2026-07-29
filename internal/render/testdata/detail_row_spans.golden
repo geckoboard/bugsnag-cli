@@ -1,0 +1,7 @@
+ ID                       │ Seen
+──────────────────────────┼─────
+ 6a3a318a90a602cb08300beb │ 38s
+   store: unable to upsert records: context deadline exceeded
+
+ 6a68d7fa018f5404872a0000 │ 16s
+   resolving field #1
