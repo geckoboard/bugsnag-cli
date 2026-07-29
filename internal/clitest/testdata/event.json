@@ -1,0 +1,88 @@
+{
+  "id": "ev00000000000000000001",
+  "error_id": "6a3a318a90a602cb08300beb",
+  "received_at": "2026-07-28T11:59:00.000Z",
+  "severity": "warning",
+  "unhandled": false,
+  "context": "unknown method:0",
+  "app": {
+    "releaseStage": "production",
+    "version": "1e59939"
+  },
+  "device": {
+    "hostname": "230838611af3"
+  },
+  "user": {
+    "id": "user-42"
+  },
+  "exceptions": [
+    {
+      "error_class": "*fmt.wrapError",
+      "message": "resolving field #1: cannot read field id",
+      "stacktrace": [
+        {
+          "file": "/home/runner/project/queue/manager.go",
+          "method": "(*Manager).Process",
+          "line_number": 105,
+          "column_number": 13,
+          "in_project": null,
+          "code": {
+            "104": "\tif err := m.upsert(ctx); err != nil {",
+            "105": "\t\treturn fmt.Errorf(\"store: %w\", err)",
+            "106": "\t}"
+          }
+        },
+        {
+          "file": "github.com/example-org/queue/event/event.go",
+          "method": "(*EnvelopePayload).DecodeAndProcess",
+          "line_number": 73
+        },
+        {
+          "file": "github.com/example-org/utils/async/async.go",
+          "method": "Run.func1",
+          "line_number": 13
+        }
+      ]
+    },
+    {
+      "error_class": "*errors.errorString",
+      "message": "cannot read field id: from step #2",
+      "stacktrace": []
+    }
+  ],
+  "breadcrumbs": [
+    {
+      "timestamp": "2026-07-28T11:58:00.000Z",
+      "name": "sqs receive",
+      "type": "process"
+    }
+  ],
+  "metaData": {
+    "zulu": 1,
+    "Alpha": "A",
+    "auth_token": "live-secret-value"
+  },
+  "request": {
+    "httpMethod": "GET",
+    "url": "https://internal.example/v1/thing?secret=live-secret-value\u0026page=2",
+    "clientIp": "10.0.0.1",
+    "headers": {
+      "x-honeycomb-trace": "trace-abc123",
+      "x-honeycomb-team": "live-ingest-key",
+      "accept": "application/json"
+    }
+  },
+  "threads": [
+    {
+      "id": 1,
+      "name": "main",
+      "stacktrace": [
+        {
+          "file": "a.go",
+          "method": "main",
+          "line_number": 1
+        }
+      ]
+    }
+  ]
+}

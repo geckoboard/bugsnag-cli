@@ -1,0 +1,51 @@
+[
+  {
+    "display_id": "error.status",
+    "custom": false,
+    "filter_options": {
+      "name": "Error Status"
+    }
+  },
+  {
+    "display_id": "event.severity",
+    "custom": false,
+    "filter_options": {
+      "name": "Severity"
+    }
+  },
+  {
+    "display_id": "app.release_stage",
+    "custom": false,
+    "filter_options": {
+      "name": "Release Stage"
+    }
+  },
+  {
+    "display_id": "event.class",
+    "custom": false,
+    "filter_options": {
+      "name": "Error Class"
+    }
+  },
+  {
+    "display_id": "event.unhandled",
+    "custom": false,
+    "filter_options": {
+      "name": "Unhandled"
+    }
+  },
+  {
+    "display_id": "user.email",
+    "custom": true,
+    "filter_options": {
+      "name": "User Email"
+    }
+  },
+  {
+    "display_id": "device.hostname",
+    "custom": false,
+    "filter_options": {
+      "name": "Hostname"
+    }
+  }
+]

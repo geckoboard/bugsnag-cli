@@ -1,0 +1,23 @@
+[
+  {
+    "id": "p-example-api",
+    "name": "example-api",
+    "slug": "example-api",
+    "html_url": "https://app.bugsnag.com/example-org/example-api",
+    "open_error_count": 11
+  },
+  {
+    "id": "p-worker",
+    "name": "worker",
+    "slug": "worker",
+    "html_url": "https://app.bugsnag.com/example-org/worker",
+    "open_error_count": 2
+  },
+  {
+    "id": "p-worker-replica",
+    "name": "worker-replica",
+    "slug": "worker-replica",
+    "html_url": "https://app.bugsnag.com/example-org/worker-replica",
+    "open_error_count": 0
+  }
+]

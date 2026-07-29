@@ -1,0 +1,51 @@
+[
+  {
+    "event_field_display_id": "event",
+    "name": "Events",
+    "cardinality": 70681
+  },
+  {
+    "event_field_display_id": "app.release_stage",
+    "name": "Release stages",
+    "cardinality": 2,
+    "summary": {
+      "list": [
+        {
+          "value": "production",
+          "events": 40000
+        },
+        {
+          "value": "staging",
+          "events": 30000
+        }
+      ],
+      "no_value": 0,
+      "other": 0
+    }
+  },
+  {
+    "event_field_display_id": "device.hostname",
+    "name": "Hosts",
+    "cardinality": 85,
+    "summary": {
+      "list": [
+        {
+          "value": "230838611af3",
+          "events": 5000
+        }
+      ],
+      "no_value": 0,
+      "other": 65681
+    }
+  },
+  {
+    "event_field_display_id": "app.type",
+    "name": "App types",
+    "cardinality": 0,
+    "summary": {
+      "list": [],
+      "no_value": 70681,
+      "other": 0
+    }
+  }
+]

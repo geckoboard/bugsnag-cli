@@ -1,0 +1,83 @@
+[
+  {
+    "id": "6a3a318a90a602cb08300beb",
+    "project_id": "p-example-api",
+    "error_class": "*fmt.wrapError",
+    "message": "resolving field #1: cannot read field id: from step #2 (*steps.HTTPStep): request failed: Get \"https://api.example.com/v1/records?include=fields\u0026page=2\": retries exhausted",
+    "context": "unknown method:0",
+    "severity": "warning",
+    "status": "open",
+    "first_seen": "2026-06-28T12:00:00.000Z",
+    "last_seen": "2026-07-28T11:59:00.000Z",
+    "events": 70681,
+    "unthrottled_occurrence_count": 5700000,
+    "users": 0,
+    "comment_count": 1,
+    "release_stages": [
+      "production",
+      "staging"
+    ],
+    "grouping_reason": "default",
+    "reopen_rules": {
+      "reopen_if": "n_occurrences_in_m_hours",
+      "occurrences": 10,
+      "hours": 2
+    },
+    "trend": [
+      [
+        "2026-07-01T00:00:00Z",
+        12
+      ],
+      [
+        "2026-07-02T00:00:00Z",
+        900
+      ],
+      [
+        "2026-07-03T00:00:00Z",
+        4000
+      ]
+    ],
+    "unknown_future_field": {
+      "nested": {
+        "deep": [
+          1,
+          2,
+          {
+            "x": null
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "6a68d7fa018f5404872a0000",
+    "project_id": "p-example-api",
+    "error_class": "*errors.withStack",
+    "message": "store: unable to upsert records: context deadline exceeded",
+    "context": "unknown method:0",
+    "severity": "error",
+    "status": "open",
+    "first_seen": "2026-06-30T12:00:00.000Z",
+    "last_seen": "2026-07-28T11:59:22.000Z",
+    "events": 9007199254740993,
+    "unthrottled_occurrence_count": 9007199254740993,
+    "users": 0,
+    "release_stages": [
+      "production"
+    ],
+    "trend": [
+      [
+        "2026-07-01T00:00:00Z",
+        1
+      ],
+      [
+        "2026-07-02T00:00:00Z",
+        2
+      ]
+    ]
+  },
+  {
+    "id": "6a00000000000000000000ff",
+    "project_id": "p-example-api"
+  }
+]

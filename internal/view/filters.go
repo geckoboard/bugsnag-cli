@@ -93,5 +93,5 @@ func FiltersList(d *render.Doc, in FiltersInput, m render.Mode) {
 	}
 	tbl.Done()
 
-	d.Footer("See the encoding a filter produces with `--print-request --dry-run`.")
+	d.Footer("See the encoding a filter produces with `--dry-run`.")
 }
