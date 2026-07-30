@@ -22,10 +22,6 @@ type Doc struct {
 
 	// items counts ordered-list entries so Item can number itself.
 	items int
-
-	// warnings are collected during rendering and reported once on stderr, so a
-	// per-item decode failure degrades that item instead of failing the command.
-	warnings []string
 }
 
 // New returns an empty Doc.
@@ -79,16 +75,6 @@ func (d *Doc) Footer(format string, args ...any) {
 
 // Blank forces a blank line between two blocks that would otherwise be tight.
 func (d *Doc) Blank() { d.add(node{kind: nodeBlank}) }
-
-// Warnf records a warning to be reported once on stderr after the document is
-// written. It is how a per-item decode failure degrades to a marked row instead
-// of failing the whole command.
-func (d *Doc) Warnf(format string, args ...any) {
-	d.warnings = append(d.warnings, sprintf(format, args...))
-}
-
-// Warnings returns the collected warnings.
-func (d *Doc) Warnings() []string { return d.warnings }
 
 // Item opens a numbered block. Lines added to it stay separate lines, and the
 // continuation lines are indented to line up under the first.

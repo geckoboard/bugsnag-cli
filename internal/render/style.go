@@ -9,22 +9,16 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
-
-	"github.com/geckoboard/bugsnag-cli/internal/apierr"
 )
 
-// Write writes a document to w in the given format.
+// Write writes a document to w.
 //
 // There is one authoring path: views build a Doc, and the Doc decides what its
 // nodes look like from the Mode it was created with. That is what keeps human
 // and agent output from drifting apart, because there is no second code path to
-// forget to update.
-func Write(w io.Writer, d *Doc, format Format) error {
-	if format == FormatJSON {
-		return apierr.New(apierr.KindInternal,
-			"render.Write called with --json; the JSON path writes the API's item bytes directly")
-	}
-
+// forget to update. The --json path never comes here; it writes the API's item
+// bytes directly.
+func Write(w io.Writer, d *Doc) error {
 	_, err := io.WriteString(w, d.String())
 	return err
 }

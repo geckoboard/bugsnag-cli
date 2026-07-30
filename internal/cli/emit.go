@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/geckoboard/bugsnag-cli/internal/bugsnagio"
+	"github.com/geckoboard/bugsnag-cli/internal/filters"
 	"github.com/geckoboard/bugsnag-cli/internal/render"
 )
 
@@ -20,41 +21,59 @@ type View[T any] func(*render.Doc, []T, bugsnagio.Meta, render.Mode)
 // pagination footer. That makes two mistakes structurally unreachable: a command
 // file cannot forget a "if format == table" branch, and pagination state cannot
 // be dropped on one of the two output paths.
-func emitList[T any](ctx context.Context, a *app, req bugsnagio.Request, view View[T]) error {
+func emitList[T any](
+	ctx context.Context, a *app, req bugsnagio.Request, set *filters.Set, view View[T],
+) error {
 	client, err := a.api()
 	if err != nil {
 		return err
 	}
 
+	// A sample of the rows as they arrived, so a filter the API ignored is caught
+	// on both output paths rather than only the one that decodes items. A
+	// contradiction shows up in the first rows or not at all, so this is bounded.
+	sample := bugsnagio.NewSampleSink(filterCheckSample)
+
 	if a.settings.Format == render.FormatJSON {
-		sink := bugsnagio.NewJSONSink(a.deps.Stdout, true)
-		return client.Stream(ctx, req, sink)
+		out := bugsnagio.NewJSONSink(a.deps.Stdout, true)
+		err := client.Stream(ctx, req, bugsnagio.TeeSink{out, sample})
+		a.warnIfFiltersIgnored(set, sample.Items)
+		return err
 	}
 
 	sink := bugsnagio.NewTypedSink[T]()
-	if err := client.Stream(ctx, req, sink); err != nil {
+	if err := client.Stream(ctx, req, bugsnagio.TeeSink{sink, sample}); err != nil {
 		return err
 	}
+	a.warnIfFiltersIgnored(set, sample.Items)
 
 	d := a.doc()
 	m := d.Mode()
 	view(d, sink.Items, sink.Meta, m)
 	writeListFooter(d, sink.Meta, len(sink.Items)+len(sink.Degraded))
 
-	reportDegraded(a.deps.Stderr, sink, d)
-	return render.Write(a.deps.Stdout, d, render.FormatText)
+	reportDegraded(a.deps.Stderr, sink)
+	return render.Write(a.deps.Stdout, d)
 }
 
-// emitOne runs a single-object endpoint and writes it.
-func emitOne[T any](ctx context.Context, a *app, req bugsnagio.Request, view func(*render.Doc, T, render.Mode)) error {
+// emitJSON runs a single-object endpoint and writes the API's own bytes.
+func emitJSON(ctx context.Context, a *app, req bugsnagio.Request) error {
 	client, err := a.api()
 	if err != nil {
 		return err
 	}
+	return client.One(ctx, req, bugsnagio.NewJSONSink(a.deps.Stdout, false))
+}
 
+// emitOne runs a single-object endpoint and writes it.
+func emitOne[T any](ctx context.Context, a *app, req bugsnagio.Request, view func(*render.Doc, T, render.Mode)) error {
 	if a.settings.Format == render.FormatJSON {
-		sink := bugsnagio.NewJSONSink(a.deps.Stdout, false)
-		return client.One(ctx, req, sink)
+		return emitJSON(ctx, a, req)
+	}
+
+	client, err := a.api()
+	if err != nil {
+		return err
 	}
 
 	sink := bugsnagio.NewTypedSink[T]()
@@ -67,22 +86,27 @@ func emitOne[T any](ctx context.Context, a *app, req bugsnagio.Request, view fun
 		// The object was readable as JSON but not as the generated type. Saying
 		// so and pointing at --json is the honest outcome; failing outright would
 		// throw away a response the caller can still get at.
-		reportDegraded(a.deps.Stderr, sink, d)
+		reportDegraded(a.deps.Stderr, sink)
 		d.H1("Could not display this response")
 		d.Text("The response did not match the shape this version of the CLI expects.")
 		d.Footer("Use --json to see the raw response.")
-		return render.Write(a.deps.Stdout, d, render.FormatText)
+		return render.Write(a.deps.Stdout, d)
 	}
 
 	view(d, sink.Items[0], d.Mode())
-	reportDegraded(a.deps.Stderr, sink, d)
-	return render.Write(a.deps.Stdout, d, render.FormatText)
+	reportDegraded(a.deps.Stderr, sink)
+	return render.Write(a.deps.Stdout, d)
 }
+
+// filterCheckSample is how many rows are kept to check a filter against. A row
+// that contradicts the filter is almost always the first one, and the check only
+// needs one.
+const filterCheckSample = 30
 
 // emitDoc writes a document built without an API call, such as help or
 // `project show`.
 func emitDoc(a *app, d *render.Doc) error {
-	return render.Write(a.deps.Stdout, d, render.FormatText)
+	return render.Write(a.deps.Stdout, d)
 }
 
 // writeListFooter states what was shown against what exists.
@@ -115,12 +139,9 @@ func writeListFooter(d *render.Doc, meta bugsnagio.Meta, shown int) {
 // decoded. It goes to stderr and the command still exits 0: the output is
 // incomplete but truthful, and failing the whole command over one bad item would
 // throw away every good one.
-func reportDegraded[T any](w io.Writer, sink *bugsnagio.TypedSink[T], d *render.Doc) {
+func reportDegraded[T any](w io.Writer, sink *bugsnagio.TypedSink[T]) {
 	if msg := sink.Warning(); msg != "" {
 		fmt.Fprintln(w, msg)
-	}
-	for _, warning := range d.Warnings() {
-		fmt.Fprintln(w, warning)
 	}
 }
 

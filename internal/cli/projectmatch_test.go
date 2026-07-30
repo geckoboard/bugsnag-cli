@@ -1,18 +1,18 @@
-package projectresolve_test
+package cli
 
 import (
 	"testing"
 
 	"gotest.tools/v3/assert"
 
-	"github.com/geckoboard/bugsnag-cli/internal/projectresolve"
+	"github.com/geckoboard/bugsnag-cli/internal/config"
 )
 
-// projects includes a prefix pair — campus and campus-replicator — which is what
+// matchable includes a prefix pair — campus and campus-replicator — which is what
 // makes exact matching worth stating: campus can only match campus, never
 // campus-replicator.
-func projects() []projectresolve.Project {
-	return []projectresolve.Project{
+func matchable() []config.Project {
+	return []config.Project{
 		{ID: "p1", Name: "example-api", Slug: "example-api"},
 		{ID: "p2", Name: "queue", Slug: "queue"},
 		{ID: "p3", Name: "campus", Slug: "campus"},
@@ -21,14 +21,14 @@ func projects() []projectresolve.Project {
 	}
 }
 
-func TestMatchOnSlug(t *testing.T) {
-	got, ok := projectresolve.Match("example-api", projects())
+func TestMatchProjectOnSlug(t *testing.T) {
+	got, ok := matchProject("example-api", matchable())
 	assert.Assert(t, ok, "example-api should match")
 	assert.Equal(t, got.ID, "p1")
 }
 
-func TestMatchOnName(t *testing.T) {
-	got, ok := projectresolve.Match("Marketing Site", projects())
+func TestMatchProjectOnName(t *testing.T) {
+	got, ok := matchProject("Marketing Site", matchable())
 	assert.Assert(t, ok, "the display name should match")
 	assert.Equal(t, got.ID, "p5")
 }
@@ -41,7 +41,7 @@ func TestPrefixPairsDoNotCrossMatch(t *testing.T) {
 		"campus-replicator": "p4",
 	} {
 		t.Run(repo, func(t *testing.T) {
-			got, ok := projectresolve.Match(repo, projects())
+			got, ok := matchProject(repo, matchable())
 			assert.Assert(t, ok, "%s should match", repo)
 			assert.Equal(t, got.ID, wantID)
 		})
@@ -52,34 +52,34 @@ func TestPrefixPairsDoNotCrossMatch(t *testing.T) {
 // with a different separator no longer resolves — that is a `project link` case.
 func TestSeparatorDifferencesDoNotResolve(t *testing.T) {
 	for _, repo := range []string{"marketing_site", "marketing.site", "MarketingSite"} {
-		_, ok := projectresolve.Match(repo, projects())
+		_, ok := matchProject(repo, matchable())
 		assert.Assert(t, !ok, "%s must not match under exact matching", repo)
 	}
 }
 
 func TestNoMatchDoesNotResolve(t *testing.T) {
-	_, ok := projectresolve.Match("something-else-entirely", projects())
+	_, ok := matchProject("something-else-entirely", matchable())
 	assert.Assert(t, !ok, "an unmatched repository must not resolve silently")
 }
 
 // TestTiesDoNotResolve: two projects with the same name is a question, not an
 // answer.
 func TestTiesDoNotResolve(t *testing.T) {
-	tied := []projectresolve.Project{
+	tied := []config.Project{
 		{ID: "a", Name: "example-api", Slug: "example-api"},
 		{ID: "b", Name: "example-api", Slug: "example-api"},
 	}
-	_, ok := projectresolve.Match("example-api", tied)
+	_, ok := matchProject("example-api", tied)
 	assert.Assert(t, !ok, "a tie should ask rather than resolve")
 }
 
-func TestMatchIsCaseInsensitive(t *testing.T) {
-	got, ok := projectresolve.Match("EXAMPLE-API", projects())
+func TestMatchProjectIsCaseInsensitive(t *testing.T) {
+	got, ok := matchProject("EXAMPLE-API", matchable())
 	assert.Assert(t, ok)
 	assert.Equal(t, got.ID, "p1")
 }
 
 func TestEmptyProjectList(t *testing.T) {
-	_, ok := projectresolve.Match("example-api", nil)
+	_, ok := matchProject("example-api", nil)
 	assert.Assert(t, !ok, "an empty project list must not resolve")
 }

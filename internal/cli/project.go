@@ -14,7 +14,6 @@ import (
 	"github.com/geckoboard/bugsnag-cli/internal/bugsnagapi"
 	"github.com/geckoboard/bugsnag-cli/internal/bugsnagio"
 	"github.com/geckoboard/bugsnag-cli/internal/config"
-	"github.com/geckoboard/bugsnag-cli/internal/projectresolve"
 	"github.com/geckoboard/bugsnag-cli/internal/render"
 	"github.com/geckoboard/bugsnag-cli/internal/repoid"
 )
@@ -36,10 +35,7 @@ func newProjectCmd(a *app) *cobra.Command {
 
 // resolvedProject is a project the CLI decided to act on, and how it decided.
 type resolvedProject struct {
-	ID      string
-	Name    string
-	Slug    string
-	HTMLURL string
+	config.Project
 
 	Source   config.Source
 	Identity repoid.Identity
@@ -69,7 +65,10 @@ func (p resolvedProject) DashboardURL(errorID, eventID string) string {
 // cannot silently return another organization's project.
 func (a *app) project(ctx context.Context) (resolvedProject, error) {
 	if a.settings.ProjectID != "" {
-		p := resolvedProject{ID: a.settings.ProjectID, Source: a.settings.ProjectSource}
+		p := resolvedProject{
+			Project: config.Project{ID: a.settings.ProjectID},
+			Source:  a.settings.ProjectSource,
+		}
 		// An explicitly named project still needs its html_url for dashboard
 		// links, and a slug (in any case) has to be resolved to its id. A project
 		// that genuinely does not exist is reported as such; only a transient
@@ -103,10 +102,12 @@ func (a *app) project(ctx context.Context) (resolvedProject, error) {
 
 	if cached, ok := a.cfg.Repos[string(identity)]; ok && cached.OrgID == orgID {
 		return resolvedProject{
-			ID:       cached.ProjectID,
-			Name:     cached.ProjectName,
-			Slug:     cached.ProjectSlug,
-			HTMLURL:  cached.HTMLURL,
+			Project: config.Project{
+				ID:      cached.ProjectID,
+				Name:    cached.ProjectName,
+				Slug:    cached.ProjectSlug,
+				HTMLURL: cached.HTMLURL,
+			},
 			Source:   config.SourceConfig,
 			Identity: identity,
 		}, nil
@@ -143,16 +144,13 @@ func (a *app) autodetectProject(
 		return resolvedProject{}, err
 	}
 
-	match, ok := projectresolve.Match(repoName, projects)
+	match, ok := matchProject(repoName, projects)
 	if !ok {
 		return resolvedProject{}, a.explainAmbiguity(repoName, projects)
 	}
 
 	resolved := resolvedProject{
-		ID:       match.ID,
-		Name:     match.Name,
-		Slug:     match.Slug,
-		HTMLURL:  match.HTMLURL,
+		Project:  match,
 		Source:   config.SourceConfig,
 		Identity: identity,
 	}
@@ -169,7 +167,7 @@ func (a *app) autodetectProject(
 }
 
 // searchProjects asks the API for projects matching q.
-func (a *app) searchProjects(ctx context.Context, orgID, q string) ([]projectresolve.Project, error) {
+func (a *app) searchProjects(ctx context.Context, orgID, q string) ([]config.Project, error) {
 	client, err := a.api()
 	if err != nil {
 		return nil, err
@@ -193,9 +191,9 @@ func (a *app) searchProjects(ctx context.Context, orgID, q string) ([]projectres
 		return nil, err
 	}
 
-	out := make([]projectresolve.Project, 0, len(sink.Items))
+	out := make([]config.Project, 0, len(sink.Items))
 	for _, p := range sink.Items {
-		out = append(out, projectresolve.Project{
+		out = append(out, config.Project{
 			ID:      deref(p.Id),
 			Name:    deref(p.Name),
 			Slug:    deref(p.Slug),
@@ -232,7 +230,7 @@ func (a *app) lookupProject(ctx context.Context, idOrSlug string) (resolvedProje
 	target := strings.ToLower(strings.TrimSpace(idOrSlug))
 	for _, p := range projects {
 		if strings.ToLower(p.ID) == target || strings.ToLower(p.Slug) == target {
-			return resolvedProject{ID: p.ID, Name: p.Name, Slug: p.Slug, HTMLURL: p.HTMLURL}, nil
+			return resolvedProject{Project: p}, nil
 		}
 	}
 	return resolvedProject{}, &apierr.Error{
@@ -267,14 +265,14 @@ func (a *app) cachedProject(orgID, idOrSlug string) (resolvedProject, bool) {
 // slug, so a later --project resolves without re-listing. It is best-effort: a
 // cache that cannot be written just means the next run lists again. It updates
 // the in-memory config too, so a resolution within the same run is warm.
-func (a *app) cacheOrgProjects(orgID string, projects []projectresolve.Project) {
+func (a *app) cacheOrgProjects(orgID string, projects []config.Project) {
 	cache := make(map[string]config.Project, len(projects))
 	for _, p := range projects {
 		slug := strings.ToLower(strings.TrimSpace(p.Slug))
 		if slug == "" {
 			continue
 		}
-		cache[slug] = config.Project{ID: p.ID, Name: p.Name, Slug: p.Slug, HTMLURL: p.HTMLURL}
+		cache[slug] = p
 	}
 
 	a.cfg.Projects, a.cfg.ProjectsOrgID = cache, orgID
@@ -290,19 +288,12 @@ func (a *app) cacheOrgProjects(orgID string, projects []projectresolve.Project) 
 }
 
 func projectFromCache(p config.Project) resolvedProject {
-	return resolvedProject{ID: p.ID, Name: p.Name, Slug: p.Slug, HTMLURL: p.HTMLURL}
+	return resolvedProject{Project: p}
 }
 
 // explainAmbiguity prints the projects it saw and fails with a config error, so
 // a script gets the list it needs rather than a guess.
-func (a *app) explainAmbiguity(repoName string, projects []projectresolve.Project) error {
-	if render.IsTerminal(a.deps.Stdout) && a.deps.Stdin != nil {
-		if chosen, ok := a.promptProject(projects); ok {
-			return apierr.New(apierr.KindConfig,
-				"selected %s; re-run with --project %s", chosen.Name, chosen.ID)
-		}
-	}
-
+func (a *app) explainAmbiguity(repoName string, projects []config.Project) error {
 	d := a.doc()
 	d.H1("Cannot tell which project matches `%s`", repoName)
 
@@ -324,22 +315,6 @@ func (a *app) explainAmbiguity(repoName string, projects []projectresolve.Projec
 	}
 
 	return apierr.New(apierr.KindConfig, "could not determine the project for %q", repoName)
-}
-
-func (a *app) promptProject(projects []projectresolve.Project) (projectresolve.Project, bool) {
-	shown := projects[:min(len(projects), 10)]
-
-	fmt.Fprintln(a.deps.Stderr, "Which project?")
-	for i, p := range shown {
-		fmt.Fprintf(a.deps.Stderr, "  %d) %s (%s)\n", i+1, p.Name, p.ID)
-	}
-	fmt.Fprint(a.deps.Stderr, "Number: ")
-
-	var n int
-	if _, err := fmt.Fscanf(a.deps.Stdin, "%d", &n); err != nil || n < 1 || n > len(shown) {
-		return projectresolve.Project{}, false
-	}
-	return shown[n-1], true
 }
 
 // linkRepo records a resolution centrally. Nothing is written into the
@@ -391,7 +366,7 @@ func newProjectListCmd(a *app) *cobra.Command {
 				},
 				AllPages: true,
 			}
-			return emitList(cmd.Context(), a, req, viewProjects)
+			return emitList(cmd.Context(), a, req, nil, viewProjects)
 		},
 	}
 	cmd.Flags().StringVarP(&query, "query", "q", "", "filter projects by name")

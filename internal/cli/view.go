@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 
@@ -45,9 +46,10 @@ func newViewCmd(a *app) *cobra.Command {
 			"anywhere new.\n" +
 			"  - The project comes from the URL for this run only, and is never written " +
 			"to the config file. `bugsnag project link` is how that is made permanent.\n" +
-			"  - Filter parameters are translated, not forwarded, and only for fields " +
-			"this CLI has verified. Anything else in the URL is named on stderr rather " +
-			"than silently ignored.",
+			"  - Filter parameters are applied: a field with a flag of its own is " +
+			"translated to it, and the rest are passed through as `--filter`. Query " +
+			"parameters that are not filters at all are named on stderr rather than " +
+			"silently ignored.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runView(cmd.Context(), a, args[0], all)
@@ -172,10 +174,12 @@ func (a *app) adoptRef(ref dashboardurl.Ref) error {
 // filtersFromRef translates the URL's filter state into the same conditions the
 // flags produce, and returns them rendered as flags for the equivalent command.
 //
-// Only fields backed by a curated flag are translated. The rest are named as
-// ignored, never forwarded: the API takes any filter key with a 200 and silently
-// ignores the ones it does not act on, so forwarding one that does nothing would
-// look like a filter that matched everything.
+// A field backed by a curated flag is translated to that flag. Everything else is
+// forwarded as an equality condition rather than dropped: the dashboard only puts
+// a filter in the URL because it applied one, and the fields it names are the
+// project's own — a custom metaData field can appear in no static list. The rows
+// that come back are what catches a field the API ignores, so nothing has to be
+// refused up front to stay honest.
 func (a *app) filtersFromRef(ref dashboardurl.Ref) (*filters.Set, []string, error) {
 	set := &filters.Set{}
 	var applied []string
@@ -183,7 +187,11 @@ func (a *app) filtersFromRef(ref dashboardurl.Ref) (*filters.Set, []string, erro
 	for _, f := range ref.Filters {
 		curated, ok := curatedByField(f.Field)
 		if !ok {
-			a.warnUnmapped(f)
+			// Passed through raw. A relative time is left as the dashboard wrote
+			// it, since the API reads 30d here exactly as it reads the absolute
+			// form the curated flags send.
+			set.Add(f.Field, filters.OpEq, f.Value)
+			applied = append(applied, fmt.Sprintf("--filter '%s=%s'", f.Field, f.Value))
 			continue
 		}
 
@@ -200,7 +208,7 @@ func (a *app) filtersFromRef(ref dashboardurl.Ref) (*filters.Set, []string, erro
 		case filterBool:
 			b, err := strconv.ParseBool(f.Value)
 			if err != nil {
-				a.warnUnmapped(f)
+				a.warnUnreadable(f)
 				continue
 			}
 			set.Add(curated.field, filters.OpEq, strconv.FormatBool(b))
@@ -215,9 +223,12 @@ func (a *app) filtersFromRef(ref dashboardurl.Ref) (*filters.Set, []string, erro
 	return set, applied, nil
 }
 
-func (a *app) warnUnmapped(f dashboardurl.Filter) {
+// warnUnreadable covers a URL value the flag it maps to cannot express, which is
+// the one case still dropped rather than forwarded: --unhandled is a boolean, and
+// there is nothing truthful to send for a value that is not one.
+func (a *app) warnUnreadable(f dashboardurl.Filter) {
 	warnf(a.deps.Stderr,
-		"the URL filters on %s=%s, which has no verified flag; not applied. "+
+		"the URL filters on %s=%s, which is not a value that field takes; not applied. "+
 			"See: bugsnag errors list --list-filters", f.Field, f.Value)
 }
 
@@ -277,6 +288,6 @@ func scopeFor(all bool) view.FrameScope {
 
 // note writes an informational line to stderr, in the same shape as the
 // project-autodetect note: never on stdout, so a --json pipeline stays clean.
-func note(w interface{ Write([]byte) (int, error) }, format string, args ...any) {
+func note(w io.Writer, format string, args ...any) {
 	fmt.Fprintf(w, "note: "+format+"\n", args...)
 }

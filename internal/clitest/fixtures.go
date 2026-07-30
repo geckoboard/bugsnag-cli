@@ -64,10 +64,18 @@ func DefaultTrend() []json.RawMessage { return fixtureArray("trend.json") }
 
 // DefaultEventFields is the project's event-field catalogue.
 //
-// It models the verified mismatch between that catalogue and the keys the filter
-// API actually accepts: it omits app.version and error.class, both of which work
-// as filters, and includes event.class, which the API rejects with a 400. It also
-// carries a custom field, the case no static list could know about.
+// It models the verified relationship between that catalogue and the keys the
+// filter API acts on. The catalogue lists event.class, which filters; it does not
+// list error.class or app.version, which are the ids someone reaches for first
+// and which the API accepts and then ignores. That is the whole reason a filter
+// has to be checked against the rows it returns rather than trusted.
+//
+// It omits event.since and event.before, which do filter, because the catalogue
+// is not a complete account of what works either.
+//
+// The custom field is a metaData id, which is what a custom field actually looks
+// like: across one organization's 49 projects, all 22 custom ids were metaData.*
+// and each appeared in exactly one project.
 func DefaultEventFields() []json.RawMessage { return fixtureArray("event_fields.json") }
 
 // DefaultPivots covers the Summaries table, shown by default on errors view.

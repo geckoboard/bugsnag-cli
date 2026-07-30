@@ -19,13 +19,15 @@ import (
 	"github.com/geckoboard/bugsnag-cli/internal/view"
 )
 
-// addFilterFlags registers the curated filter flags.
+// addFilterFlags registers the curated filter flags and the generic escape hatch.
 //
-// The set is curated rather than a generic --filter escape hatch because the
-// field ids are not guessable and the wire format is not documented.
-// --list-filters asks the project what it actually supports, and is registered
-// here so it is present wherever filters are, rather than somewhere a third
-// filtering command could forget to wire up.
+// The curated flags name the fields worth a flag of their own. --filter reaches
+// everything else, because no static list can: a project's custom fields are its
+// own — across one organization's 49 projects there were 22 distinct
+// metaData.* ids, every one of them present in exactly one project.
+// --list-filters asks the project what it supports, and is registered here so it
+// is present wherever filters are, rather than somewhere a third filtering
+// command could forget to wire up.
 //
 // The field ids here are verified against the live API rather than taken from the
 // spec. The spec's Filters schema has no event.unhandled property, yet the API
@@ -43,8 +45,12 @@ func addFilterFlags(f *pflag.FlagSet) {
 		}
 	}
 
+	// StringArray rather than StringSlice: a slice splits on commas, and the
+	// values here are messages and URLs that contain them.
+	f.StringArray("filter", nil,
+		"filter on any field id: `field=value`, `field!=value`, `field>time`, `field<time` (repeatable)")
+
 	f.Bool("list-filters", false, "list the fields this project can be filtered on, then stop")
-	f.Bool("print-request", false, "print the request that would be sent")
 	f.Bool("dry-run", false, "print the request and stop without sending it")
 }
 
@@ -78,6 +84,11 @@ type curatedFilter struct {
 // registration, flag parsing and the --list-filters mapping all read this table,
 // so they cannot disagree about which flag sets which field.
 var curatedFilters = []curatedFilter{
+	{
+		flag:  "search",
+		field: filters.FieldSearch,
+		usage: "full-text search, across every field rather than one (prefix ! to exclude)",
+	},
 	{
 		flag:  "status",
 		field: filters.FieldStatus,
@@ -125,9 +136,6 @@ func filtersFromFlags(a *app) (*filters.Set, error) {
 
 	set := &filters.Set{}
 	f := a.flags
-	if f == nil {
-		return set, nil
-	}
 
 	for _, c := range curatedFilters {
 		switch c.kind {
@@ -167,7 +175,80 @@ func filtersFromFlags(a *app) (*filters.Set, error) {
 		}
 	}
 
+	exprs, err := f.GetStringArray("filter")
+	if err != nil {
+		return set, nil
+	}
+	for _, raw := range exprs {
+		c, err := parseFilterExpr(raw, a.deps.Now())
+		if err != nil {
+			return nil, err
+		}
+		set.Add(c.Field, c.Operator, c.Value)
+	}
+
 	return set, nil
+}
+
+// parseFilterExpr reads one --filter expression into a condition.
+//
+// The operator is the first of = != > < in the expression, because a field id
+// contains none of them while a value routinely contains all four: an error
+// message with an equals sign in it must not be read as a second operator.
+//
+// A time operator resolves its value the same way --since does, so what goes on
+// the wire is an absolute time whichever route it arrived by. There is no bare-!
+// negation here as there is on the curated flags: != says it outright, and a
+// leading ! in a value would then be ambiguous with a value that starts with one.
+func parseFilterExpr(raw string, now time.Time) (filters.Condition, error) {
+	field, op, value, err := splitFilterExpr(raw)
+	if err != nil {
+		return filters.Condition{}, err
+	}
+
+	if op == filters.OpAfter || op == filters.OpBefore {
+		resolved, err := resolveTime(value, now)
+		if err != nil {
+			return filters.Condition{}, apierr.Wrap(apierr.KindUsage, err, "--filter %s", raw)
+		}
+		value = resolved
+	}
+	return filters.Condition{Field: field, Operator: op, Value: value}, nil
+}
+
+func splitFilterExpr(raw string) (field string, op filters.Operator, value string, err error) {
+	for i := 0; i < len(raw); i++ {
+		var width int
+		switch {
+		case strings.HasPrefix(raw[i:], "!="):
+			op, width = filters.OpNe, 2
+		case raw[i] == '=':
+			op, width = filters.OpEq, 1
+		case raw[i] == '>':
+			op, width = filters.OpAfter, 1
+		case raw[i] == '<':
+			op, width = filters.OpBefore, 1
+		default:
+			continue
+		}
+
+		field, value = raw[:i], raw[i+width:]
+		if field == "" || value == "" {
+			return "", "", "", filterExprError(raw, "both a field and a value are needed")
+		}
+		return field, op, value, nil
+	}
+
+	return "", "", "", filterExprError(raw, "no operator found")
+}
+
+func filterExprError(raw, why string) error {
+	return &apierr.Error{
+		Kind:    apierr.KindUsage,
+		Message: fmt.Sprintf("cannot read --filter %q: %s", raw, why),
+		Hint: "use field=value, field!=value, field>time or field<time; " +
+			"list the fields with: bugsnag errors list --list-filters",
+	}
 }
 
 // resolveTime accepts a duration like "24h" or "7d" as well as an absolute
@@ -204,19 +285,13 @@ func resolveTime(raw string, now time.Time) (string, error) {
 		"cannot read %q as a time: use a duration like 24h or 7d, or an ISO timestamp", raw)
 }
 
-// maybePrintRequest handles --print-request and --dry-run.
+// maybeDryRun handles --dry-run.
 //
 // The bracket filter encoding is the one wire format the spec does not define, so
 // being able to see it before sending it is how it gets verified against reality.
 // It returns true when the command should stop.
-func (a *app) maybePrintRequest(req bugsnagio.Request, set *filters.Set) (bool, error) {
-	if a.flags == nil {
-		return false, nil
-	}
-
-	print, _ := a.flags.GetBool("print-request")
-	dryRun, _ := a.flags.GetBool("dry-run")
-	if !print && !dryRun {
+func (a *app) maybeDryRun(req bugsnagio.Request, set *filters.Set) (bool, error) {
+	if dryRun, _ := a.flags.GetBool("dry-run"); !dryRun {
 		return false, nil
 	}
 
@@ -238,29 +313,21 @@ func (a *app) maybePrintRequest(req bugsnagio.Request, set *filters.Set) (bool, 
 	d.Field("Authorization", "`token` prefix with the configured token (%d characters)",
 		len(a.settings.Token))
 
-	if dryRun {
-		d.Footer("Dry run: nothing was sent.")
-	}
+	d.Footer("Dry run: nothing was sent.")
 	if err := emitDoc(a, d); err != nil {
 		return true, err
 	}
 
-	return dryRun, nil
+	return true, nil
 }
 
 // requestURL builds the URL a request would use, without sending it.
 func (a *app) requestURL(req bugsnagio.Request) (string, error) {
-	if req.Build == nil {
-		return "", apierr.New(apierr.KindInternal, "request has no builder")
-	}
-
-	built, err := req.Build(a.settings.Host)
+	client, err := a.api()
 	if err != nil {
-		return "", apierr.Wrap(apierr.KindInternal, err, "building request")
+		return "", err
 	}
-
-	bugsnagio.AppendQuery(built.URL, req.ExtraQuery)
-	return built.URL.String(), nil
+	return client.StartURL(req)
 }
 
 // maybeListFilters handles --list-filters.
@@ -269,9 +336,6 @@ func (a *app) requestURL(req bugsnagio.Request) (string, error) {
 // for, so the list query itself is not run. Returns true when the command should
 // stop.
 func (a *app) maybeListFilters(ctx context.Context, p resolvedProject) (bool, error) {
-	if a.flags == nil {
-		return false, nil
-	}
 	if list, _ := a.flags.GetBool("list-filters"); !list {
 		return false, nil
 	}

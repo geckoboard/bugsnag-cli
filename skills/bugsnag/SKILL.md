@@ -1,6 +1,6 @@
 ---
 name: bugsnag
-description: Read Bugsnag production errors and events from the terminal with the `bugsnag` CLI. Use whenever a task involves a Bugsnag error, investigating a production bug or crash, checking what is failing in a service, reading a stack trace from Bugsnag, or when handed a Bugsnag dashboard URL. This skill covers getting oriented only; the CLI's own `--help` is the reference for flags and per-command caveats.
+description: Read Bugsnag production errors and events from the terminal with the `bugsnag` CLI. Use whenever a task involves a Bugsnag error, investigating a production bug or crash, checking what is failing in a service, finding the errors that match a message, symptom or class, checking whether a bug is happening in production or how often, reading a stack trace from Bugsnag, or when handed a Bugsnag dashboard URL. This skill covers getting oriented only; the CLI's own `--help` is the reference for flags and per-command caveats.
 ---
 
 # bugsnag
@@ -65,6 +65,25 @@ that are the same on every occurrence (error class, release stage, and so on)
 stated once above the table. Differing messages mean the group spans more than one
 failure — read a couple of individual events before deciding on a cause.
 
+## Looking for something specific? Search, don't grep
+
+```sh
+bugsnag errors list --search 'circular dependency' --since 90d
+bugsnag errors list --search SettingsBuilder
+```
+
+**Do not fetch a big list and `grep` it.** `--search` is a server-side full-text
+filter, and it is both cheaper and stricter than grepping the output:
+
+- One request instead of paging. `--limit 300 | grep` is ten or more requests
+  against a 30-per-minute budget, and it still only sees the rows it fetched.
+- It matches **across all available data**, including stack frames, which the list
+  never prints. Searching one project for `circular` returned six errors where
+  grepping the same list could only ever have found four — the other two carried
+  the term solely in the frames of their latest event.
+
+Quote a multi-word term. A leading `!` excludes.
+
 ## Narrow a list
 
 ```sh
@@ -75,14 +94,31 @@ bugsnag errors list --list-filters                # what this project supports
 bugsnag errors list --limit 100                   # more than a screenful
 ```
 
-Verified filters: `--status`, `--severity`, `--release-stage`, `--unhandled`,
+Flags: `--search`, `--status`, `--severity`, `--release-stage`, `--unhandled`,
 `--since`, `--until`. A leading `!` negates; repeating a flag means "either";
 times take `7d` or an ISO timestamp.
 
-Beyond those six, verify before trusting: the API accepts any filter key with a
-200 and ignores the ones it does not act on, so **a filter that does nothing looks
-identical to one that matched everything.** Compare a real value against a made-up
-one — same count means the field is being ignored.
+Any other field goes through `--filter`, which takes `field=value`,
+`field!=value`, `field>time` or `field<time`:
+
+```sh
+bugsnag errors list --filter 'event.class=ActionView::Template::Error'
+bugsnag errors list --filter 'event.message=timeout' --filter 'app.context=users#create'
+bugsnag errors list --filter 'metaData.Query.widget_key=abc123'   # a custom field
+```
+
+`--list-filters` is how you find the field ids; a project's custom fields are its
+own and appear in no fixed list. Useful ones that have no flag: `event.class`,
+`event.message`, `event.file`, `event.method`, `app.context`, `request.url` — all
+substring matches.
+
+Get the id wrong and the API still answers 200, ignores the filter and returns
+everything, so **a filter that does nothing looks identical to one that matched
+everything.** The CLI catches this when a returned row contradicts the filter, and
+prints a `did not filter` warning on stderr — but it can only do that for fields
+the rows carry. It cannot check `--search`, `metaData` or user fields, so for
+those still confirm a real value against a made-up one: the same count both times
+means the field is being ignored.
 
 ## Reading the output
 

@@ -35,7 +35,7 @@ func newOrgListCmd(a *app) *cobra.Command {
 						&bugsnagapi.ListUserOrganizationsParams{})
 				},
 			}
-			return emitList(cmd.Context(), a, req, viewOrganizations(a.cfg.Org.ID))
+			return emitList(cmd.Context(), a, req, nil, viewOrganizations(a.cfg.Org.ID))
 		},
 	}
 }

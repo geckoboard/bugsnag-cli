@@ -27,7 +27,6 @@ import (
 type Exception struct {
 	ErrorClass string
 	Message    string
-	Type       string
 	Stacktrace []Frame
 }
 
@@ -45,8 +44,6 @@ type Frame struct {
 
 	// Code is the source snippet, keyed by line number as a string.
 	Code map[string]string
-
-	SourceControlLink string
 }
 
 // Tristate is a boolean that may be absent.
@@ -69,16 +66,6 @@ func (t Tristate) Bool() (bool, bool) {
 		return false, true
 	}
 	return false, false
-}
-
-func (t Tristate) String() string {
-	switch t {
-	case Yes:
-		return "yes"
-	case No:
-		return "no"
-	}
-	return "unknown"
 }
 
 // ExceptionsFrom reads the exception chain out of a raw event or error payload.
@@ -108,33 +95,43 @@ func ExceptionsFrom(raw json.RawMessage) []Exception {
 	return out
 }
 
-// ErrorClass returns the error class for a payload, preferring the exception
-// chain over any top-level field.
-//
-// `events list` carries no top-level class at all, and where both exist they
-// agree, so exceptions[0] is the one source that is always right.
-func ErrorClass(raw json.RawMessage) string {
-	if exceptions := ExceptionsFrom(raw); len(exceptions) > 0 && exceptions[0].ErrorClass != "" {
-		return exceptions[0].ErrorClass
-	}
-	return topLevelString(raw, "error_class", "errorClass")
+// classAndMessage reads both fields from one pass over the payload. They are
+// always wanted together, and each falling back to the top level separately meant
+// parsing the same bytes up to three times.
+func classAndMessage(raw json.RawMessage) (class, msg string) {
+	return classAndMessageFrom(ExceptionsFrom(raw), raw)
 }
 
-// Message returns the error message, preferring the exception chain for the same
-// reason as ErrorClass.
-func Message(raw json.RawMessage) string {
-	if exceptions := ExceptionsFrom(raw); len(exceptions) > 0 && exceptions[0].Message != "" {
-		return exceptions[0].Message
+// classAndMessageFrom is classAndMessage for a caller that already has the chain.
+func classAndMessageFrom(chain []Exception, raw json.RawMessage) (class, msg string) {
+	if len(chain) > 0 {
+		class, msg = chain[0].ErrorClass, chain[0].Message
 	}
-	return topLevelString(raw, "message")
+	if class != "" && msg != "" {
+		return class, msg
+	}
+
+	// Only a payload whose chain did not supply both is read again at the top
+	// level, which is the `errors list` projection.
+	var m map[string]any
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return class, msg
+	}
+	if class == "" {
+		class = mapString(m, "error_class", "errorClass")
+	}
+	if msg == "" {
+		msg = mapString(m, "message")
+	}
+	return class, msg
 }
 
-// IsSentinelFrame reports whether a frame carries no usable location.
+// isSentinelFrame reports whether a frame carries no usable location.
 //
 // Some notifiers emit a placeholder frame with no file and no method, and a few
 // use the string "unknown" for a method that could not be resolved. Rendering
 // those as `:0` is noise, so they are dropped rather than shown.
-func IsSentinelFrame(f Frame) bool {
+func isSentinelFrame(f Frame) bool {
 	if f.File != "" {
 		return false
 	}
@@ -145,12 +142,47 @@ func IsSentinelFrame(f Frame) bool {
 	return false
 }
 
+// FilterableValues reads what one returned item shows for the fields a filter can
+// name, keyed by what the value is rather than by any one field id.
+//
+// It exists so a filter the API ignored can be caught by the rows it answered
+// with: the API returns 200 for a filter key it does not act on, so a wrong field
+// id looks exactly like a filter everything matched. A row carrying a value the
+// filter excludes settles it.
+//
+// Only what an error or event actually carries is here. A filter on metaData, a
+// user or a stack frame cannot be judged from these rows, and guessing at one
+// would be worse than staying quiet.
+func FilterableValues(raw json.RawMessage) map[string]string {
+	var m map[string]any
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return nil
+	}
+
+	out := make(map[string]string, 6)
+	for _, key := range []string{"context", "status", "severity", "id"} {
+		if v := mapString(m, key); v != "" {
+			out[key] = v
+		}
+	}
+
+	// Class and message go through the lenient reader: they live in exceptions[0]
+	// on an event listing, which carries no top-level pair at all.
+	class, msg := classAndMessage(raw)
+	if class != "" {
+		out["class"] = class
+	}
+	if msg != "" {
+		out["message"] = msg
+	}
+	return out
+}
+
 // exceptionFromMap reads one exception, accepting either key casing.
 func exceptionFromMap(m map[string]any) Exception {
 	e := Exception{
 		ErrorClass: mapString(m, "errorClass", "error_class"),
 		Message:    mapString(m, "message"),
-		Type:       mapString(m, "type"),
 	}
 
 	frames, _ := m["stacktrace"].([]any)
@@ -167,16 +199,16 @@ func exceptionFromMap(m map[string]any) Exception {
 
 func frameFromMap(m map[string]any) Frame {
 	f := Frame{
-		File:              mapString(m, "file"),
-		Method:            mapString(m, "method"),
-		InProject:         mapTristate(m, "in_project", "inProject"),
-		SourceControlLink: mapString(m, "source_control_link", "sourceControlLink"),
-	}
-	f.LineNumber, _ = mapInt(m, "line_number", "lineNumber")
+		File:       mapString(m, "file"),
+		Method:     mapString(m, "method"),
+		InProject:  mapTristate(m, "in_project", "inProject"),
+		LineNumber: mapInt(m, "line_number", "lineNumber"),
 
-	// column_number is declared a string in the spec but comes back as an
-	// integer, so both are accepted here as well as being patched in the overlay.
-	f.ColumnNumber, _ = mapInt(m, "column_number", "columnNumber")
+		// column_number is declared a string in the spec but comes back as an
+		// integer, so both are accepted here as well as being patched in the
+		// overlay.
+		ColumnNumber: mapInt(m, "column_number", "columnNumber"),
+	}
 
 	if code, ok := m["code"].(map[string]any); ok && len(code) > 0 {
 		f.Code = make(map[string]string, len(code))
@@ -201,24 +233,21 @@ func mapString(m map[string]any, keys ...string) string {
 
 // mapInt reads the first key that holds a number, accepting the string form too
 // since the spec declares column_number as a string.
-func mapInt(m map[string]any, keys ...string) (int, bool) {
+//
+// float64 is the only numeric case because these maps all come from a plain
+// encoding/json unmarshal into any, which has no other numeric form.
+func mapInt(m map[string]any, keys ...string) int {
 	for _, k := range keys {
 		switch v := m[k].(type) {
 		case float64:
-			return int(v), true
-		case json.Number:
-			if n, err := v.Int64(); err == nil {
-				return int(n), true
-			}
-		case int:
-			return v, true
+			return int(v)
 		case string:
 			if n, err := strconv.Atoi(v); err == nil {
-				return n, true
+				return n
 			}
 		}
 	}
-	return 0, false
+	return 0
 }
 
 // mapTristate distinguishes false from absent.
@@ -236,12 +265,4 @@ func mapTristate(m map[string]any, keys ...string) Tristate {
 		}
 	}
 	return Unknown
-}
-
-func topLevelString(raw json.RawMessage, keys ...string) string {
-	var m map[string]any
-	if err := json.Unmarshal(raw, &m); err != nil {
-		return ""
-	}
-	return mapString(m, keys...)
 }

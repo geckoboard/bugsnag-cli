@@ -121,9 +121,6 @@ type Degraded struct {
 
 	// Fields is whatever could be read generically.
 	Fields map[string]any
-
-	// Err is why the typed decode failed.
-	Err error
 }
 
 // NewTypedSink returns a sink collecting T.
@@ -143,11 +140,7 @@ func (s *TypedSink[T]) Item(raw json.RawMessage) error {
 		return apierr.Wrap(apierr.KindDecode, jerr, "item %d is not valid JSON", s.count())
 	}
 
-	s.Degraded = append(s.Degraded, Degraded{
-		Index:  s.count(),
-		Fields: fields,
-		Err:    err,
-	})
+	s.Degraded = append(s.Degraded, Degraded{Index: s.count(), Fields: fields})
 	return nil
 }
 
@@ -174,6 +167,36 @@ func (s *TypedSink[T]) Warning() string {
 }
 
 func (s *TypedSink[T]) count() int { return len(s.Items) + len(s.Degraded) }
+
+// SampleSink keeps the first few items as they arrived.
+//
+// It is bounded because it exists for checks that a handful of rows already
+// settle, and an unbounded copy would double the memory of an --all-pages walk
+// for nothing. This is the only sink that keeps an item's bytes past the call it
+// arrived on, so it clones them: Sink promises callers nothing about how long the
+// slice it is handed stays valid.
+type SampleSink struct {
+	// Items are the retained items, up to the limit.
+	Items []json.RawMessage
+
+	limit int
+}
+
+// NewSampleSink returns a sink retaining at most limit items.
+func NewSampleSink(limit int) *SampleSink {
+	return &SampleSink{limit: limit}
+}
+
+// Item retains raw while there is room.
+func (s *SampleSink) Item(raw json.RawMessage) error {
+	if len(s.Items) < s.limit {
+		s.Items = append(s.Items, bytes.Clone(raw))
+	}
+	return nil
+}
+
+// Close satisfies Sink. There is no metadata to keep.
+func (s *SampleSink) Close(Meta) error { return nil }
 
 // TeeSink feeds every item to several sinks, so one pass over the response can
 // serve more than one consumer.

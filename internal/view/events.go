@@ -17,8 +17,7 @@ type EventsListInput struct {
 	// class and other facts constant and so hoistable into the preamble.
 	ErrorID string
 
-	ProjectName string
-	Filters     string
+	Filters string
 }
 
 // EventsList renders events as a table, with each occurrence's message beneath
@@ -41,8 +40,6 @@ func EventsList(d *render.Doc, in EventsListInput, m render.Mode) {
 	title := "Events"
 	if in.ErrorID != "" {
 		title += " — error " + in.ErrorID
-	} else if in.ProjectName != "" {
-		title += " — " + render.Escape(in.ProjectName)
 	}
 	d.H1("%s", title)
 

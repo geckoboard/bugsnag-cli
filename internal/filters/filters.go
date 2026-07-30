@@ -9,7 +9,7 @@
 //
 // The overlay removes those parameters so the wrong encoder cannot be reached,
 // and this package produces the right wire format instead. It is the one wire
-// format the spec does not define, which is why --print-request exists.
+// format the spec does not define, which is why --dry-run prints it.
 //
 // The empty brackets are load-bearing, and verified against the live API: the
 // indexed form `filters[error.status][0][type]` is rejected with a 400 saying
@@ -160,7 +160,7 @@ func (s *Set) Describe() string {
 	return strings.Join(parts, " ")
 }
 
-// String renders the encoded query for --print-request, unescaped so the
+// String renders the encoded query for --dry-run, unescaped so the
 // brackets are readable. The order is the order it goes on the wire, since that
 // is part of what makes the encoding correct.
 func (s *Set) String() string {
@@ -188,11 +188,10 @@ func (s *Set) String() string {
 // them — error.class and app.version — are accepted and ignored, so a filter on
 // them looked like "every error is this class". The ids that do work are
 // event.class and version.seen_in, both of which the project's own event_fields
-// catalogue lists, so --list-filters surfaces them under the uncurated section
-// for anyone who wants to filter by hand.
+// catalogue lists, so --list-filters names them and --filter applies them.
 //
 // The spec is not authoritative either: its Filters schema omits event.unhandled
-// entirely, yet the API accepts and applies it.
+// and search entirely, yet the API accepts and applies both.
 const (
 	FieldStatus       = "error.status"
 	FieldSeverity     = "event.severity"
@@ -200,6 +199,15 @@ const (
 	FieldSince        = "event.since"
 	FieldBefore       = "event.before"
 	FieldUnhandled    = "event.unhandled"
+
+	// FieldSearch is full-text search, and carries no namespace prefix. The
+	// project's own event_fields catalogue describes it as matching "across all
+	// available data", and that is measurably wider than any one field: on a
+	// Rails project, searching for "circular" matched six errors where
+	// event.message matched four, the extra two carrying the term only in the
+	// stack frames of their latest event. Verified live in all 49 projects of
+	// one organization.
+	FieldSearch = "search"
 )
 
 // shortField trims the namespace for display, since the flag names are already

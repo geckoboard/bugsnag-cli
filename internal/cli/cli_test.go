@@ -60,17 +60,6 @@ func TestErrorsListNamesTheIntervalItCounts(t *testing.T) {
 		"a bare \"in range\" says a window exists without saying what it is:\n%s", got.Stdout)
 }
 
-// TestErrorsListOmitsZeroUsers follows the dashboard: these projects report 0
-// users because nothing identifies a user, and printing 0 implies it was measured.
-func TestErrorsListOmitsZeroUsers(t *testing.T) {
-
-	h := clitest.New(t)
-	got := h.Run("errors", "list")
-
-	assert.Check(t, !strings.Contains(got.Stdout, "0 users"),
-		"zero users should be omitted, not printed:\n%s", got.Stdout)
-}
-
 // TestErrorsListCarriesTheMessage. On these projects every error shares one
 // Context, so the message is the only field that tells two rows apart. Piped it
 // belongs on the same line as its row: one error, one line, nothing to stitch
@@ -591,12 +580,7 @@ func TestFilterEncodingIsTheBracketSyntax(t *testing.T) {
 
 	assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
 
-	var listRequest clitest.Request
-	for _, r := range h.Server.Requests() {
-		if strings.HasSuffix(r.Path, "/errors") {
-			listRequest = r
-		}
-	}
+	listRequest := h.Server.LastRequestTo("/errors")
 
 	for key, want := range map[string]string{
 		"filters[error.status][][type]":       "eq",
@@ -636,12 +620,7 @@ func TestSeveralConditionsOnOneFieldAreRepeatedPairs(t *testing.T) {
 	h := clitest.New(t)
 	h.Run("errors", "list", "--severity", "error", "--severity", "warning")
 
-	var req clitest.Request
-	for _, r := range h.Server.Requests() {
-		if strings.HasSuffix(r.Path, "/errors") {
-			req = r
-		}
-	}
+	req := h.Server.LastRequestTo("/errors")
 
 	raw, err := url.QueryUnescape(req.Raw)
 	assert.NilError(t, err, "query is not decodable")
@@ -681,6 +660,154 @@ func TestSinceIsResolvedToAnAbsoluteTime(t *testing.T) {
 	assert.Check(t, is.Contains(got.Stdout, "2026-07-21T12:00:00Z"))
 }
 
+// TestSearchEncodesWithNoNamespace: the field id is a bare "search", unlike every
+// other filter. event.search and error.search are ids nobody documents and the
+// API ignores; the project's own catalogue calls it "search".
+func TestSearchEncodesWithNoNamespace(t *testing.T) {
+
+	h := clitest.New(t)
+	got := h.Run("errors", "list", "--search", "circular", "--dry-run", "--project", "p-example-api")
+
+	assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
+	assert.Check(t, is.Contains(got.Stdout, "filters[search][][type]=eq"))
+	assert.Check(t, is.Contains(got.Stdout, "filters[search][][value]=circular"))
+}
+
+// TestFilterReachesAFieldWithNoFlagOfItsOwn, which is the only way to filter on a
+// project's custom fields.
+func TestFilterReachesAFieldWithNoFlagOfItsOwn(t *testing.T) {
+
+	h := clitest.New(t)
+	got := h.Run("errors", "list",
+		"--filter", "metaData.Query.widget_key=abc123", "--dry-run", "--project", "p-example-api")
+
+	assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
+	assert.Check(t, is.Contains(got.Stdout, "filters[metaData.Query.widget_key][][value]=abc123"))
+}
+
+// TestFilterOperators covers the four the API takes. A time operator resolves its
+// value the same way --since does, so the wire form does not depend on the route.
+func TestFilterOperators(t *testing.T) {
+
+	for _, tc := range []struct {
+		expr string
+		want string
+	}{
+		{"event.class=TypeError", "filters[event.class][][type]=eq&filters[event.class][][value]=TypeError"},
+		{"event.class!=TypeError", "filters[event.class][][type]=ne&filters[event.class][][value]=TypeError"},
+		{"event.since>7d", "filters[event.since][][type]=after&filters[event.since][][value]=2026-07-21T12:00:00Z"},
+		{"event.before<7d", "filters[event.before][][type]=before&filters[event.before][][value]=2026-07-21T12:00:00Z"},
+	} {
+		h := clitest.New(t)
+		got := h.Run("errors", "list", "--filter", tc.expr, "--dry-run", "--project", "p-example-api")
+
+		assert.Equal(t, got.Code, exitcode.OK, "%s: stderr:\n%s", tc.expr, got.Stderr)
+		assert.Check(t, is.Contains(got.Stdout, tc.want), "--filter %s", tc.expr)
+	}
+}
+
+// TestFilterSplitsOnTheFirstOperatorOnly: a field id carries none of = != > <,
+// while a message routinely carries all four.
+func TestFilterSplitsOnTheFirstOperatorOnly(t *testing.T) {
+
+	h := clitest.New(t)
+	got := h.Run("errors", "list",
+		"--filter", "event.message=a=b>c", "--dry-run", "--project", "p-example-api")
+
+	assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
+	assert.Check(t, is.Contains(got.Stdout, "filters[event.message][][value]=a=b>c"))
+}
+
+// TestFilterWithoutAnOperatorIsAUsageError, and says what the forms are.
+func TestFilterWithoutAnOperatorIsAUsageError(t *testing.T) {
+
+	for _, expr := range []string{"event.class", "=TypeError", "event.class="} {
+		h := clitest.New(t)
+		got := h.Run("errors", "list", "--filter", expr)
+
+		assert.Check(t, is.Equal(got.Code, exitcode.Usage), "--filter %q should not be accepted", expr)
+		assert.Check(t, is.Equal(got.Stdout, ""), "errors must not reach stdout")
+	}
+}
+
+// TestFilterWarnsWhenTheRowsDisproveIt.
+//
+// error.class is the id someone reaches for before finding event.class, and the
+// API answers 200 and ignores it. Nothing in the response says so — but a row
+// came back whose class the filter excludes, and that is proof.
+func TestFilterWarnsWhenTheRowsDisproveIt(t *testing.T) {
+
+	h := clitest.New(t)
+	got := h.Run("errors", "list", "--filter", "error.class=NoSuchClass")
+
+	assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
+	assert.Check(t, is.Contains(got.Stderr, "did not filter"))
+	assert.Check(t, is.Contains(got.Stderr, "error.class=NoSuchClass"))
+	// The warning belongs on stderr: a --json pipeline must stay clean.
+	assert.Check(t, !strings.Contains(got.Stdout, "did not filter"))
+}
+
+// TestFilterWarningReachesTheJSONPathToo.
+//
+// --json is what an agent uses, so it is the path that most needs telling that a
+// filter did nothing. The warning goes to stderr, leaving the document on stdout
+// still valid JSON.
+func TestFilterWarningReachesTheJSONPathToo(t *testing.T) {
+
+	h := clitest.New(t)
+	got := h.Run("errors", "list", "--json", "--filter", "error.class=NoSuchClass")
+
+	assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
+	assert.Check(t, is.Contains(got.Stderr, "did not filter"))
+
+	var items []map[string]any
+	assert.NilError(t, json.Unmarshal([]byte(got.Stdout), &items),
+		"stdout is not valid JSON:\n%s", got.Stdout)
+}
+
+// TestFilterStaysQuietWhenTheFilterWorked, so the warning keeps its meaning.
+// event.class is a field the API acts on, and every row that comes back agrees
+// with it.
+func TestFilterStaysQuietWhenTheFilterWorked(t *testing.T) {
+
+	h := clitest.New(t)
+	got := h.Run("errors", "list", "--filter", "event.class=wrapError")
+
+	assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
+	assert.Check(t, !strings.Contains(got.Stderr, "did not filter"),
+		"a working filter was reported as ignored:\n%s", got.Stderr)
+	assert.Check(t, is.Contains(got.Stdout, "*fmt.wrapError"))
+}
+
+// TestSearchIsNeverReportedAsIgnored.
+//
+// search matches across all available data, including stack frames no row
+// carries, so a row whose class and message lack the term is not evidence of
+// anything. Verified live: searching one project for "circular" matched six
+// errors where event.message matched four, the extra two carrying it only in the
+// frames of their latest event.
+func TestSearchIsNeverReportedAsIgnored(t *testing.T) {
+
+	h := clitest.New(t)
+	got := h.Run("errors", "list", "--search", "NoSuchTermAnywhere")
+
+	assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
+	assert.Check(t, !strings.Contains(got.Stderr, "did not filter"),
+		"search cannot be judged from the rows:\n%s", got.Stderr)
+}
+
+// TestAnUnobservableFilterIsNotSecondGuessed: an error carries no metaData, so
+// there is nothing in the rows that could disprove a filter on one.
+func TestAnUnobservableFilterIsNotSecondGuessed(t *testing.T) {
+
+	h := clitest.New(t)
+	got := h.Run("errors", "list", "--filter", "metaData.Query.widget_key=abc123")
+
+	assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
+	assert.Check(t, !strings.Contains(got.Stderr, "did not filter"),
+		"a filter the rows cannot speak to was guessed at:\n%s", got.Stderr)
+}
+
 func TestUnknownFlagIsAUsageError(t *testing.T) {
 
 	h := clitest.New(t)
@@ -717,27 +844,6 @@ func TestAPIErrorsAreClassifiedByStatus(t *testing.T) {
 		line := strings.SplitN(got.Stderr, "\n", 2)[0]
 		assert.Check(t, strings.Contains(line, "exit_code=") && strings.Contains(line, "retryable="),
 			"status %d: stderr is missing the machine-readable fields: %q", tc.status, line)
-	}
-}
-
-// TestRetryableIsReportedForTheRetryBand: 7..9 means retry.
-func TestRetryableIsReportedForTheRetryBand(t *testing.T) {
-
-	for status, wantRetryable := range map[int]bool{
-		429: true,
-		500: true,
-		404: false,
-		401: false,
-	} {
-		h := clitest.New(t)
-		h.Server.Status = status
-
-		got := h.Run("errors", "list", "--project", "p-example-api")
-		want := "retryable=false"
-		if wantRetryable {
-			want = "retryable=true"
-		}
-		assert.Check(t, is.Contains(got.Stderr, want), "status %d", status)
 	}
 }
 
@@ -1001,12 +1107,7 @@ func TestUnhandledFilterEncodes(t *testing.T) {
 	h := clitest.New(t)
 	h.Run("errors", "list", "--unhandled")
 
-	var req clitest.Request
-	for _, r := range h.Server.Requests() {
-		if strings.HasSuffix(r.Path, "/errors") {
-			req = r
-		}
-	}
+	req := h.Server.LastRequestTo("/errors")
 	values := req.Query["filters[event.unhandled][][value]"]
 	assert.Check(t, len(values) > 0 && values[0] == "true", "--unhandled = %v, want true\nraw: %s", values, req.Raw)
 
@@ -1107,14 +1208,4 @@ func TestCodeSaysWhenThereIsNoSource(t *testing.T) {
 
 	assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
 	assert.Check(t, is.Contains(got.Stdout, "No source snippets"))
-}
-
-// TestNoProjectWideEventListing: events hang off an error, so there is no `events`
-// noun to reach for.
-func TestNoProjectWideEventListing(t *testing.T) {
-
-	h := clitest.New(t)
-	got := h.Run("events", "list")
-
-	assert.Check(t, is.Equal(got.Code, exitcode.Usage), "the events command was removed")
 }

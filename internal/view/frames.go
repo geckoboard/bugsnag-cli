@@ -112,9 +112,10 @@ func writeFrames(d *render.Doc, e Exception, opts StacktraceOptions, m render.Mo
 		// One frame is one line. Wrapping a module path across two lines makes a
 		// trace much harder to scan, and the tail of the path is the part that
 		// identifies the frame, so a long one is trimmed from the left.
-		line := fmt.Sprintf("%s · %s", render.Code(location(f.Frame)), render.Code(f.Method))
+		loc := location(f.Frame)
+		line := fmt.Sprintf("%s · %s", render.Code(loc), render.Code(f.Method))
 		if m.TTY {
-			line = fitFrameLine(location(f.Frame), f.Method, m.Width-frameIndent)
+			line = fitFrameLine(loc, f.Method, m.Width-frameIndent)
 		}
 
 		item := d.Item().Line("%s", line)
@@ -142,9 +143,7 @@ const frameIndent = 4
 func fitFrameLine(location, method string, width int) string {
 	const sep = " · "
 
-	if width < MinFrameWidth {
-		width = MinFrameWidth
-	}
+	width = max(width, minFrameWidth)
 
 	full := location + sep + method
 	if render.StringWidth(full) <= width {
@@ -153,10 +152,7 @@ func fitFrameLine(location, method string, width int) string {
 
 	// The method is the more compact half and rarely the thing to cut, so the
 	// location gives up the room.
-	budget := width - render.StringWidth(method) - render.StringWidth(sep)
-	if budget < MinLocationWidth {
-		budget = MinLocationWidth
-	}
+	budget := max(width-render.StringWidth(method)-render.StringWidth(sep), minLocationWidth)
 	return render.Code(trimLeft(location, budget)) + sep + render.Code(method)
 }
 
@@ -166,6 +162,8 @@ func trimLeft(s string, width int) string {
 	if render.StringWidth(s) <= width {
 		return s
 	}
+	// The final candidate is "…" alone, one cell against a width the caller has
+	// already floored well above that, so the loop always returns.
 	runes := []rune(s)
 	for i := range runes {
 		candidate := "…" + string(runes[i+1:])
@@ -176,11 +174,11 @@ func trimLeft(s string, width int) string {
 	return "…"
 }
 
-// MinFrameWidth and MinLocationWidth stop a very narrow terminal from reducing a
+// minFrameWidth and minLocationWidth stop a very narrow terminal from reducing a
 // frame to punctuation.
 const (
-	MinFrameWidth    = 24
-	MinLocationWidth = 12
+	minFrameWidth    = 24
+	minLocationWidth = 12
 )
 
 // displayFrame is a frame or a marker standing in for a run of library frames.
@@ -197,7 +195,7 @@ func selectFrames(frames []Frame, scope FrameScope) []displayFrame {
 	// Placeholder frames carrying no location are noise.
 	real := make([]Frame, 0, len(frames))
 	for _, f := range frames {
-		if !IsSentinelFrame(f) {
+		if !isSentinelFrame(f) {
 			real = append(real, f)
 		}
 	}

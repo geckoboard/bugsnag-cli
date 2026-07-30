@@ -96,9 +96,25 @@ step is written out for you.
 ### Filtering
 
 ```sh
+bugsnag errors list --search 'circular dependency'   # full-text, across every field
 bugsnag errors list --release-stage production --since 7d
-bugsnag errors list --list-filters     # what this project can be filtered on
+bugsnag errors list --filter 'event.class=TypeError' # any field id, including custom ones
+bugsnag errors list --list-filters                   # what this project can be filtered on
 ```
+
+`--search` is the one to reach for when you know some of the text but not which
+field it is in: it matches across all available data, including stack frames that
+never appear in the list output. Searching it server-side is also the difference
+between one request and paging through hundreds of rows to `grep` them.
+
+`--filter` takes any field id — `field=value`, `field!=value`, `field>time`,
+`field<time` — which is the only way to reach a project's custom `metaData`
+fields, since no built-in flag can know about those.
+
+The API answers `200` for a field id it does not act on and returns everything
+unfiltered, so a mistyped id looks exactly like a filter that matched. When a
+returned row carries a value the filter excludes, the CLI says so on stderr rather
+than letting it read as a result.
 
 `--list-filters` lists what a project can be filtered on. Every command that reads
 error or event data also carries a **Caveats** section near the top of its

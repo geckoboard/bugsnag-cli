@@ -13,10 +13,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/geckoboard/bugsnag-cli/internal/view"
 )
 
 // Server is a fake Data Access API.
@@ -152,8 +155,105 @@ func (s *Server) handle(items func() []json.RawMessage) http.HandlerFunc {
 		if s.fail(w) {
 			return
 		}
-		s.writePage(w, r, items())
+		s.writePage(w, r, applyFilters(r, items()))
 	}
+}
+
+// applyFilters models the API's filtering, including the part that surprises
+// people: a filter on a field id it does not act on is answered 200 and ignored,
+// so the result comes back unfiltered rather than empty or 400.
+//
+// Only the ids verified to work against the live API are acted on here, which is
+// what makes the difference testable — event.class filters, error.class is
+// ignored, and the CLI has to notice the second one from the rows alone.
+func applyFilters(r *http.Request, items []json.RawMessage) []json.RawMessage {
+	conditions := parseFilters(r.URL.Query())
+	if len(conditions) == 0 {
+		return items
+	}
+
+	out := make([]json.RawMessage, 0, len(items))
+	for _, raw := range items {
+		if matchesFilters(view.FilterableValues(raw), conditions) {
+			out = append(out, raw)
+		}
+	}
+	return out
+}
+
+// filterableIDs are the field ids the API acts on, mapped to the value they
+// select and whether the match is a substring one.
+var filterableIDs = map[string]struct {
+	key       string
+	substring bool
+}{
+	"event.class":    {"class", true},
+	"event.message":  {"message", true},
+	"app.context":    {"context", true},
+	"error.status":   {"status", false},
+	"event.severity": {"severity", false},
+	"error.id":       {"id", false},
+}
+
+// parseFilters reads the bracket syntax back into conditions grouped by field.
+func parseFilters(q url.Values) map[string][]condition {
+	out := make(map[string][]condition)
+	for key, values := range q {
+		field, ok := strings.CutSuffix(strings.TrimPrefix(key, "filters["), "][][value]")
+		if !ok || field == key {
+			continue
+		}
+		if _, known := filterableIDs[field]; !known {
+			continue
+		}
+
+		types := q["filters["+field+"][][type]"]
+		for i, v := range values {
+			op := "eq"
+			if i < len(types) {
+				op = types[i]
+			}
+			out[field] = append(out[field], condition{op: op, value: v})
+		}
+	}
+	return out
+}
+
+type condition struct {
+	op    string
+	value string
+}
+
+// matchesFilters reports whether one item satisfies every filtered field.
+// Conditions on one field are OR-ed, and different fields are AND-ed.
+func matchesFilters(values map[string]string, conditions map[string][]condition) bool {
+	for field, conds := range conditions {
+		spec := filterableIDs[field]
+		got, present := values[spec.key]
+
+		var satisfied bool
+		for _, c := range conds {
+			matched := present && strings.EqualFold(got, c.value)
+			if spec.substring {
+				matched = present && strings.Contains(strings.ToLower(got), strings.ToLower(c.value))
+			}
+
+			if c.op == "ne" {
+				if matched {
+					return false
+				}
+				satisfied = true
+				continue
+			}
+			if matched {
+				satisfied = true
+			}
+		}
+		if !satisfied {
+			return false
+		}
+	}
+	return true
 }
 
 // handleOne serves a single object.

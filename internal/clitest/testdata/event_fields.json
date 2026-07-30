@@ -35,10 +35,25 @@
     }
   },
   {
+    "display_id": "search",
+    "custom": false,
+    "filter_options": {
+      "name": "Search",
+      "description": "Find events and errors matching your search term across all available data"
+    }
+  },
+  {
     "display_id": "user.email",
-    "custom": true,
+    "custom": false,
     "filter_options": {
       "name": "User Email"
+    }
+  },
+  {
+    "display_id": "metaData.Query.widget_key",
+    "custom": true,
+    "filter_options": {
+      "name": "Widget key"
     }
   },
   {

@@ -269,17 +269,17 @@ func (c *Client) StartURL(r Request) (string, error) {
 		return "", apierr.New(apierr.KindInternal, "%s: built request has no URL", r.Op)
 	}
 
-	AppendQuery(req.URL, r.ExtraQuery)
+	appendQuery(req.URL, r.ExtraQuery)
 	return req.URL.String(), nil
 }
 
-// AppendQuery appends parameters to a URL's query, preserving their order.
+// appendQuery appends parameters to a URL's query, preserving their order.
 //
 // Appending rather than merging through url.Values is what keeps the order:
 // url.Values sorts by key when it encodes, which would separate every filter's
 // type from its value. The bracketed keys are escaped to %5B/%5D, which the API
 // accepts — verified live.
-func AppendQuery(u *url.URL, params []filters.Param) {
+func appendQuery(u *url.URL, params []filters.Param) {
 	if u == nil || len(params) == 0 {
 		return
 	}

@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -108,12 +109,7 @@ func TestViewAppliesTheURLsFilters(t *testing.T) {
 
 	assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
 
-	var req clitest.Request
-	for _, r := range h.Server.Requests() {
-		if strings.HasSuffix(r.Path, "/errors") {
-			req = r
-		}
-	}
+	req := h.Server.LastRequestTo("/errors")
 
 	status := req.Query["filters[error.status][][value]"]
 	assert.Check(t, len(status) > 0 && status[0] == "open",
@@ -148,22 +144,50 @@ func TestViewSaysWhenFiltersCannotApply(t *testing.T) {
 	assert.Check(t, is.Contains(got.Stderr, "do not apply to a single error"))
 }
 
-// TestViewWarnsAboutAFieldWithNoVerifiedFlag rather than forwarding it. The API
-// takes any filter key with a 200 and ignores what it does not act on, so
-// forwarding one that does nothing would look like a filter that matched
-// everything.
-func TestViewWarnsAboutAFieldWithNoVerifiedFlag(t *testing.T) {
+// TestViewForwardsAFieldWithNoFlagOfItsOwn.
+//
+// The dashboard only puts a filter in the URL because it applied one, and no
+// static list can cover a project's custom fields, so a field without a curated
+// flag is passed through rather than dropped. What catches a field the API
+// ignores is the rows that come back, not a refusal up front.
+func TestViewForwardsAFieldWithNoFlagOfItsOwn(t *testing.T) {
 
 	h := clitest.New(t)
 	got := h.Run("view", dashURL("?filters[event.class]=TypeError"))
 
 	assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
-	assert.Check(t, is.Contains(got.Stderr, "event.class"))
-	assert.Check(t, is.Contains(got.Stderr, "not applied"))
+
+	var forwarded bool
 	for _, r := range h.Server.Requests() {
-		assert.Check(t, !strings.Contains(r.Raw, "event.class"),
-			"an unverified filter was forwarded anyway: %s", r.Raw)
+		if strings.Contains(r.Raw, "event.class") {
+			forwarded = true
+		}
 	}
+	assert.Check(t, forwarded, "the URL's filter was not forwarded:\n%s", h.Server.LastRequest().Raw)
+
+	// And the equivalent command says how to type it again.
+	assert.Check(t, is.Contains(got.Stderr, "--filter 'event.class=TypeError'"))
+}
+
+// TestViewPassesThroughACustomField: the case no static list could ever cover.
+// Across one organization's 49 projects there were 22 distinct metaData ids, each
+// present in exactly one project.
+func TestViewPassesThroughACustomField(t *testing.T) {
+
+	h := clitest.New(t)
+	got := h.Run("view", dashURL("?filters[metaData.Query.widget_key]=abc123"))
+
+	assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
+
+	var raw string
+	for _, r := range h.Server.Requests() {
+		if strings.HasSuffix(r.Path, "/errors") {
+			raw = r.Raw
+		}
+	}
+	decoded, err := url.QueryUnescape(raw)
+	assert.NilError(t, err)
+	assert.Check(t, is.Contains(decoded, "filters[metaData.Query.widget_key][][value]=abc123"))
 }
 
 // TestViewUsesTheProjectFromTheURL, for that run only. Persisting it is what

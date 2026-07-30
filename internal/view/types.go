@@ -17,18 +17,28 @@ import (
 type Error struct {
 	bugsnagapi.ErrorApiView
 	Raw json.RawMessage
+
+	// class and msg are read at decode time rather than per call. The list view
+	// asks for both on every row, and deriving them means parsing the exception
+	// chain, so doing it lazily meant parsing one payload several times over.
+	class string
+	msg   string
 }
 
 func (e *Error) UnmarshalJSON(b []byte) error {
 	e.Raw = bytes.Clone(b)
-	return json.Unmarshal(b, &e.ErrorApiView)
+	if err := json.Unmarshal(b, &e.ErrorApiView); err != nil {
+		return err
+	}
+	e.class, e.msg = classAndMessage(e.Raw)
+	return nil
 }
 
 // Class is the error class, read from the exception chain.
-func (e *Error) Class() string { return ErrorClass(e.Raw) }
+func (e *Error) Class() string { return e.class }
 
 // Msg is the error message, read from the exception chain.
-func (e *Error) Msg() string { return Message(e.Raw) }
+func (e *Error) Msg() string { return e.msg }
 
 // Event is one event, as the generated type plus its raw bytes.
 //
@@ -38,19 +48,28 @@ func (e *Error) Msg() string { return Message(e.Raw) }
 type Event struct {
 	bugsnagapi.EventApiView
 	Raw json.RawMessage
+
+	exceptions []Exception
+	class      string
+	msg        string
 }
 
 func (e *Event) UnmarshalJSON(b []byte) error {
 	e.Raw = bytes.Clone(b)
-	return json.Unmarshal(b, &e.EventApiView)
+	if err := json.Unmarshal(b, &e.EventApiView); err != nil {
+		return err
+	}
+	e.exceptions = ExceptionsFrom(e.Raw)
+	e.class, e.msg = classAndMessageFrom(e.exceptions, e.Raw)
+	return nil
 }
 
 // Class is the event's error class, read from exceptions[0]. `events list` sends
 // no top-level class at all.
-func (e *Event) Class() string { return ErrorClass(e.Raw) }
+func (e *Event) Class() string { return e.class }
 
 // Msg is the event's message, read from exceptions[0].
-func (e *Event) Msg() string { return Message(e.Raw) }
+func (e *Event) Msg() string { return e.msg }
 
 // Exceptions is the event's exception chain, outermost first.
-func (e *Event) Exceptions() []Exception { return ExceptionsFrom(e.Raw) }
+func (e *Event) Exceptions() []Exception { return e.exceptions }

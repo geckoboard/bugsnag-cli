@@ -121,11 +121,11 @@ func runErrorsList(ctx context.Context, a *app, sortBy string, allPages bool, li
 		Limit:    limit,
 	}
 
-	if done, err := a.maybePrintRequest(req, filters); done || err != nil {
+	if done, err := a.maybeDryRun(req, filters); done || err != nil {
 		return err
 	}
 
-	return emitList(ctx, a, req, func(
+	return emitList(ctx, a, req, filters, func(
 		d *render.Doc, errs []view.Error, _ bugsnagio.Meta, m render.Mode,
 	) {
 		view.ErrorsList(d, view.ErrorsListInput{
@@ -223,8 +223,7 @@ func runErrorsView(ctx context.Context, a *app, errorID string, opts errorsViewO
 	// requests below exist to build the text page and would change what --json
 	// means.
 	if a.settings.Format == render.FormatJSON {
-		return emitOne(ctx, a, errorRequest(p.ID, errorID),
-			func(*render.Doc, view.Error, render.Mode) {})
+		return emitJSON(ctx, a, errorRequest(p.ID, errorID))
 	}
 
 	client, err := a.api()
@@ -266,8 +265,8 @@ func runErrorsView(ctx context.Context, a *app, errorID string, opts errorsViewO
 		Stacktrace:   opts.Stacktrace,
 	}, d.Mode())
 
-	reportDegraded(a.deps.Stderr, errSink, d)
-	return render.Write(a.deps.Stdout, d, render.FormatText)
+	reportDegraded(a.deps.Stderr, errSink)
+	return render.Write(a.deps.Stdout, d)
 }
 
 // newErrorsEventsCmd lists the occurrences of one error.
@@ -338,18 +337,17 @@ func runErrorsEvents(
 		Limit:      limit,
 	}
 
-	if done, err := a.maybePrintRequest(req, filters); done || err != nil {
+	if done, err := a.maybeDryRun(req, filters); done || err != nil {
 		return err
 	}
 
-	return emitList(ctx, a, req, func(
+	return emitList(ctx, a, req, filters, func(
 		d *render.Doc, events []view.Event, _ bugsnagio.Meta, m render.Mode,
 	) {
 		view.EventsList(d, view.EventsListInput{
-			Events:      events,
-			ErrorID:     errorID,
-			ProjectName: p.Name,
-			Filters:     filters.Describe(),
+			Events:  events,
+			ErrorID: errorID,
+			Filters: filters.Describe(),
 		}, m)
 	})
 }
@@ -449,67 +447,44 @@ func errorRequest(projectID, errorID string) bugsnagio.Request {
 //
 // The latest-event endpoint is keyed by error alone; it takes no project id.
 func (a *app) fetchLatestEvent(ctx context.Context, errorID string) *view.Event {
-	client, err := a.api()
-	if err != nil {
-		return nil
-	}
-
-	sink := bugsnagio.NewTypedSink[view.Event]()
-	req := bugsnagio.Request{
-		Op: "view latest event",
-		Build: func(server string) (*http.Request, error) {
+	items := fetchAside[view.Event](ctx, a, aside{
+		op:     "view latest event",
+		what:   "the latest event",
+		single: true,
+		build: func(server string) (*http.Request, error) {
 			return bugsnagapi.NewViewLatestEventOnErrorRequest(server, errorID)
 		},
-	}
-	if err := client.One(ctx, req, sink); err != nil {
-		warnf(a.deps.Stderr, "could not load the latest event: %s", err)
+	})
+	if len(items) == 0 {
 		return nil
 	}
-	if len(sink.Items) == 0 {
-		return nil
-	}
-	return &sink.Items[0]
+	return &items[0]
 }
 
-// fetchPivots reads the Summaries. A failure here does not fail the page: the
-// error and its trace are the point, and a missing sidebar beats no output.
+// fetchPivots reads the Summaries.
 func (a *app) fetchPivots(ctx context.Context, projectID, errorID string) []view.Pivot {
-	client, err := a.api()
-	if err != nil {
-		return nil
-	}
-
 	summarySize := defaultSummarySize
 	params := &bugsnagapi.ListPivotsOnAnErrorParams{SummarySize: &summarySize}
 
-	sink := bugsnagio.NewTypedSink[view.Pivot]()
-	req := bugsnagio.Request{
-		Op: "list pivots",
-		Build: func(server string) (*http.Request, error) {
+	return fetchAside[view.Pivot](ctx, a, aside{
+		op:   "list pivots",
+		what: "summaries",
+		build: func(server string) (*http.Request, error) {
 			return bugsnagapi.NewListPivotsOnAnErrorRequest(server, projectID, errorID, params)
 		},
-	}
-	if err := client.Stream(ctx, req, sink); err != nil {
-		warnf(a.deps.Stderr, "could not load summaries: %s", err)
-		return nil
-	}
-	return sink.Items
+	})
 }
 
 // fetchTrend reads the bucketed trend. The error object's own trend field is only
 // populated when a histogram is requested, and the view-error endpoint takes no
 // parameters, so this endpoint is the only way to get it here.
 func (a *app) fetchTrend(ctx context.Context, projectID, errorID string, buckets int) []view.TrendBucket {
-	client, err := a.api()
-	if err != nil {
-		return nil
-	}
-
 	params := &bugsnagapi.GetBucketedAndUnbucketedTrendsOnErrorParams{BucketsCount: &buckets}
-	sink := bugsnagio.NewTypedSink[view.TrendBucket]()
-	req := bugsnagio.Request{
-		Op: "get trend",
-		Build: func(server string) (*http.Request, error) {
+
+	return fetchAside[view.TrendBucket](ctx, a, aside{
+		op:   "get trend",
+		what: "the trend",
+		build: func(server string) (*http.Request, error) {
 			built, err := bugsnagapi.NewGetBucketedAndUnbucketedTrendsOnErrorRequest(
 				server, projectID, errorID, params)
 			if err != nil {
@@ -523,9 +498,42 @@ func (a *app) fetchTrend(ctx context.Context, projectID, errorID string, buckets
 			built.URL.Path = strings.TrimSuffix(built.URL.Path, "/trends") + "/trend"
 			return built, nil
 		},
+	})
+}
+
+// aside describes one of the error detail page's supporting sections.
+type aside struct {
+	op   string
+	what string
+
+	// single selects the one-object endpoint over the list one.
+	single bool
+
+	build bugsnagio.BuildFunc
+}
+
+// fetchAside reads a supporting section of the error detail page.
+//
+// A failure here warns and yields nothing rather than failing the command: the
+// error and its stack trace are the point of the page, and a missing sidebar beats
+// no output at all. It is a function rather than a method because only functions
+// take type parameters.
+func fetchAside[T any](ctx context.Context, a *app, in aside) []T {
+	client, err := a.api()
+	if err != nil {
+		return nil
 	}
-	if err := client.Stream(ctx, req, sink); err != nil {
-		warnf(a.deps.Stderr, "could not load the trend: %s", err)
+
+	sink := bugsnagio.NewTypedSink[T]()
+	req := bugsnagio.Request{Op: in.op, Build: in.build}
+
+	if in.single {
+		err = client.One(ctx, req, sink)
+	} else {
+		err = client.Stream(ctx, req, sink)
+	}
+	if err != nil {
+		warnf(a.deps.Stderr, "could not load %s: %s", in.what, err)
 		return nil
 	}
 	return sink.Items
