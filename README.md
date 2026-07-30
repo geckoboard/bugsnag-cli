@@ -1,6 +1,6 @@
-# bugsnag
+# A Bugsnag CLI
 
-A command-line reader for the Bugsnag Data Access API. It works out which project you mean from the git remote, so in a repository with a Bugsnag project you can go straight to:
+A command-line reader for the [Bugsnag Data Access API](https://developer.smartbear.com/bugsnag/docs/bugsnag-data-access-api). It works out which project you mean from the git remote, so in a repository with a Bugsnag project you can go straight to:
 
 ```sh
 bugsnag errors list
