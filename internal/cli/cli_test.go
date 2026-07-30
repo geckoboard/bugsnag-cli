@@ -788,6 +788,38 @@ func TestProjectShowExplainsWhereTheProjectCameFrom(t *testing.T) {
 	}
 }
 
+// TestProjectFlagAcceptsSlugs: --project takes a slug as well as an id, and the
+// slug is matched case-insensitively, the same way autodetect matches a repo name.
+func TestProjectFlagAcceptsSlugs(t *testing.T) {
+	for _, project := range []string{"p-example-api", "example-api", "EXAMPLE-API"} {
+		t.Run(project, func(t *testing.T) {
+			h := clitest.New(t)
+			got := h.Run("errors", "list", "--project", project)
+
+			assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
+			// The title uses the resolved project name, so a slug that resolved
+			// reaches the real project rather than being sent as a raw path id.
+			assert.Check(t, is.Contains(got.Stdout, "Errors — example-api"))
+		})
+	}
+}
+
+// TestProjectFlagUnknownExplainsItself: an unresolvable --project value fails at
+// resolution with a clear message, rather than being sent to the API as a path id
+// and coming back as a confusing endpoint 404.
+func TestProjectFlagUnknownExplainsItself(t *testing.T) {
+	h := clitest.New(t)
+	got := h.Run("errors", "list", "--project", "no-such-project")
+
+	assert.Equal(t, got.Code, exitcode.NotFound)
+	assert.Check(t, is.Contains(got.Stderr, "no project matching"))
+	// It must not have gone on to query the errors endpoint with the bad value.
+	for _, r := range h.Server.Requests() {
+		assert.Check(t, !strings.HasSuffix(r.Path, "/errors"),
+			"an unresolvable project still hit the errors endpoint: %s", r.Path)
+	}
+}
+
 func TestProjectLinkAndUnlink(t *testing.T) {
 
 	h := clitest.New(t)

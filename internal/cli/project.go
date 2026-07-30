@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -70,12 +71,20 @@ func (a *app) project(ctx context.Context) (resolvedProject, error) {
 	if a.settings.ProjectID != "" {
 		p := resolvedProject{ID: a.settings.ProjectID, Source: a.settings.ProjectSource}
 		// An explicitly named project still needs its html_url for dashboard
-		// links, and naming a slug rather than an id has to be resolved.
-		if enriched, err := a.lookupProject(ctx, a.settings.ProjectID); err == nil {
+		// links, and a slug (in any case) has to be resolved to its id. A project
+		// that genuinely does not exist is reported as such; only a transient
+		// lookup failure falls back to using the value as an id directly, so a
+		// correct id still works when the project search itself hiccups.
+		enriched, err := a.lookupProject(ctx, a.settings.ProjectID)
+		switch {
+		case err == nil:
 			enriched.Source = p.Source
 			return enriched, nil
+		case apierr.KindOf(err) == apierr.KindNotFound:
+			return resolvedProject{}, err
+		default:
+			return p, nil
 		}
-		return p, nil
 	}
 
 	orgID, err := a.requireOrg()
@@ -208,12 +217,20 @@ func (a *app) lookupProject(ctx context.Context, idOrSlug string) (resolvedProje
 		return resolvedProject{}, err
 	}
 
+	// The id or slug is matched case-insensitively, so a slug typed in any case —
+	// or copied from a display name — still resolves, the same way autodetect
+	// matches a repository name.
+	target := strings.ToLower(strings.TrimSpace(idOrSlug))
 	for _, p := range projects {
-		if p.ID == idOrSlug || p.Slug == idOrSlug {
+		if strings.ToLower(p.ID) == target || strings.ToLower(p.Slug) == target {
 			return resolvedProject{ID: p.ID, Name: p.Name, Slug: p.Slug, HTMLURL: p.HTMLURL}, nil
 		}
 	}
-	return resolvedProject{}, apierr.New(apierr.KindNotFound, "no project matching %q", idOrSlug)
+	return resolvedProject{}, &apierr.Error{
+		Kind:    apierr.KindNotFound,
+		Message: fmt.Sprintf("no project matching %q in this organization", idOrSlug),
+		Hint:    "list ids and slugs with: bugsnag project list",
+	}
 }
 
 // explainAmbiguity prints the projects it saw and fails with a config error, so
