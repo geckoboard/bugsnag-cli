@@ -206,16 +206,25 @@ func (a *app) searchProjects(ctx context.Context, orgID, q string) ([]projectres
 }
 
 // lookupProject finds one project by id or slug within the active organization.
+//
+// The config caches the organization's projects, so a repeat --project resolves
+// with no API call. Only a cache miss lists them, and that refreshes the cache,
+// so a project added since is picked up.
 func (a *app) lookupProject(ctx context.Context, idOrSlug string) (resolvedProject, error) {
 	orgID, err := a.requireOrg()
 	if err != nil {
 		return resolvedProject{}, err
 	}
 
+	if p, ok := a.cachedProject(orgID, idOrSlug); ok {
+		return p, nil
+	}
+
 	projects, err := a.searchProjects(ctx, orgID, "")
 	if err != nil {
 		return resolvedProject{}, err
 	}
+	a.cacheOrgProjects(orgID, projects)
 
 	// The id or slug is matched case-insensitively, so a slug typed in any case —
 	// or copied from a display name — still resolves, the same way autodetect
@@ -231,6 +240,57 @@ func (a *app) lookupProject(ctx context.Context, idOrSlug string) (resolvedProje
 		Message: fmt.Sprintf("no project matching %q in this organization", idOrSlug),
 		Hint:    "list ids and slugs with: bugsnag project list",
 	}
+}
+
+// cachedProject resolves idOrSlug from the config's project cache, without an API
+// call. It reports false when the cache is empty, belongs to another
+// organization, or has no matching entry.
+func (a *app) cachedProject(orgID, idOrSlug string) (resolvedProject, bool) {
+	if a.cfg.ProjectsOrgID != orgID || len(a.cfg.Projects) == 0 {
+		return resolvedProject{}, false
+	}
+
+	target := strings.ToLower(strings.TrimSpace(idOrSlug))
+	if p, ok := a.cfg.Projects[target]; ok {
+		return projectFromCache(p), true
+	}
+	// The map is keyed by slug, so an id is matched by scanning the values.
+	for _, p := range a.cfg.Projects {
+		if strings.ToLower(p.ID) == target {
+			return projectFromCache(p), true
+		}
+	}
+	return resolvedProject{}, false
+}
+
+// cacheOrgProjects records the organization's projects in the config, keyed by
+// slug, so a later --project resolves without re-listing. It is best-effort: a
+// cache that cannot be written just means the next run lists again. It updates
+// the in-memory config too, so a resolution within the same run is warm.
+func (a *app) cacheOrgProjects(orgID string, projects []projectresolve.Project) {
+	cache := make(map[string]config.Project, len(projects))
+	for _, p := range projects {
+		slug := strings.ToLower(strings.TrimSpace(p.Slug))
+		if slug == "" {
+			continue
+		}
+		cache[slug] = config.Project{ID: p.ID, Name: p.Name, Slug: p.Slug, HTMLURL: p.HTMLURL}
+	}
+
+	a.cfg.Projects, a.cfg.ProjectsOrgID = cache, orgID
+
+	cfgPath, err := a.configPath()
+	if err != nil {
+		return
+	}
+	_ = config.Update(cfgPath, func(c *config.Config) error {
+		c.Projects, c.ProjectsOrgID = cache, orgID
+		return nil
+	})
+}
+
+func projectFromCache(p config.Project) resolvedProject {
+	return resolvedProject{ID: p.ID, Name: p.Name, Slug: p.Slug, HTMLURL: p.HTMLURL}
 }
 
 // explainAmbiguity prints the projects it saw and fails with a config error, so

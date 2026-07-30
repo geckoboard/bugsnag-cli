@@ -37,6 +37,16 @@ type Config struct {
 	// Repos maps a canonical repository identity to the project it resolved to.
 	// Keeping this centrally means nothing is written into your repositories.
 	Repos map[string]Repo `yaml:"repos,omitempty"`
+
+	// Projects caches the active organization's projects, so resolving --project
+	// by slug or id needs no API round-trip after the first lookup. It is keyed by
+	// the lowercased slug; an id is matched by scanning the values. It is trusted
+	// only while ProjectsOrgID matches the active organization.
+	Projects map[string]Project `yaml:"projects,omitempty"`
+
+	// ProjectsOrgID is the organization the Projects cache belongs to, so
+	// switching organizations cannot return another org's project.
+	ProjectsOrgID string `yaml:"projects_org_id,omitempty"`
 }
 
 // Org is the active organization.
@@ -44,6 +54,15 @@ type Org struct {
 	ID   string `yaml:"id,omitempty"`
 	Name string `yaml:"name,omitempty"`
 	Slug string `yaml:"slug,omitempty"`
+}
+
+// Project is a cached organization project, so --project resolves a slug or id
+// without listing the organization's projects again.
+type Project struct {
+	ID      string `yaml:"id"`
+	Name    string `yaml:"name,omitempty"`
+	Slug    string `yaml:"slug,omitempty"`
+	HTMLURL string `yaml:"html_url,omitempty"`
 }
 
 // Repo is a cached project resolution for one repository.

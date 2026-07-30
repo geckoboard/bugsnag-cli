@@ -820,6 +820,50 @@ func TestProjectFlagUnknownExplainsItself(t *testing.T) {
 	}
 }
 
+// TestProjectSlugResolutionIsCached: resolving --project lists the org's projects
+// once and caches them, so a repeat run resolves with no project-list request.
+func TestProjectSlugResolutionIsCached(t *testing.T) {
+	h := clitest.New(t)
+
+	first := h.Run("errors", "list", "--project", "example-api")
+	assert.Equal(t, first.Code, exitcode.OK, "stderr:\n%s", first.Stderr)
+
+	// The resolution is cached in the config, keyed by slug and scoped to the org.
+	cfg := h.Config()
+	assert.Equal(t, cfg.ProjectsOrgID, "org1")
+	assert.Equal(t, cfg.Projects["example-api"].ID, "p-example-api")
+
+	before := len(h.Server.Requests())
+	second := h.Run("errors", "list", "--project", "example-api")
+	assert.Equal(t, second.Code, exitcode.OK, "stderr:\n%s", second.Stderr)
+	for _, r := range h.Server.Requests()[before:] {
+		assert.Check(t, !strings.HasSuffix(r.Path, "/projects"),
+			"the second run re-listed projects instead of using the cache: %s", r.Path)
+	}
+}
+
+// TestProjectCacheIsIgnoredAfterAnOrgChange: the cache records its organization,
+// so switching organizations re-lists rather than returning another org's project.
+func TestProjectCacheIsIgnoredAfterAnOrgChange(t *testing.T) {
+	h := clitest.New(t)
+	h.Run("errors", "list", "--project", "example-api") // populates the cache for org1
+
+	cfg := h.Config()
+	cfg.Org.ID = "org-other"
+	assert.NilError(t, saveConfig(t, h.ConfigPath, cfg))
+
+	before := len(h.Server.Requests())
+	h.Run("errors", "list", "--project", "example-api")
+
+	relisted := false
+	for _, r := range h.Server.Requests()[before:] {
+		if strings.HasSuffix(r.Path, "/projects") {
+			relisted = true
+		}
+	}
+	assert.Check(t, relisted, "a cached project from another organization was reused without re-listing")
+}
+
 func TestProjectLinkAndUnlink(t *testing.T) {
 
 	h := clitest.New(t)
