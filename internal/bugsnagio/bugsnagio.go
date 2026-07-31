@@ -60,7 +60,8 @@ type Request struct {
 	// ExtraQuery is appended to the built URL's query, in order. Filters go
 	// here: the overlay removed the generated filter parameters because their
 	// emitted encoder produced the wrong wire format, so internal/filters
-	// encodes them and they join the request at this point.
+	// encodes them and they join the request at this point. The raw passthrough
+	// command's own query parameters arrive the same way.
 	//
 	// It is an ordered list rather than a url.Values because the filter encoding
 	// depends on the order the parameters arrive in: a condition's type has to

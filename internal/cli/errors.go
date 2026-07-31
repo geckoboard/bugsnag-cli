@@ -494,7 +494,9 @@ func (a *app) fetchTrend(ctx context.Context, projectID, errorID string, buckets
 			// /trend returns 200, /trends returns 404. It is corrected here rather
 			// than in the overlay because renaming a path there means inlining the
 			// whole path item, which a spec refresh would then silently leave stale
-			// while strict mode still reported the action as applied.
+			// while strict mode still reported the action as applied. api/openapi
+			// corrects the same path for the same reason, so `api --list-paths`
+			// names the one that answers.
 			built.URL.Path = strings.TrimSuffix(built.URL.Path, "/trends") + "/trend"
 			return built, nil
 		},

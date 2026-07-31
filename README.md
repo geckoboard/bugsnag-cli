@@ -66,6 +66,23 @@ bugsnag errors list --filter 'event.class=TypeError' # any field id, including c
 bugsnag errors list --list-filters                   # what this project can be filtered on
 ```
 
+### Anything with no command of its own
+
+`bugsnag api` sends a GET to any Data Access API path and prints the JSON:
+
+```sh
+bugsnag api --list-paths                                  # what there is to ask for
+bugsnag api '/projects/{project_id}/releases' --spec      # and what that one takes
+bugsnag api '/projects/{project_id}/releases' --query per_page=5
+bugsnag api '/organizations/{organization_id}/teams' --all-pages
+```
+
+`--list-paths` is the catalogue and `--spec` prints one endpoint's own YAML — its parameters with their types, defaults and examples, and the shape it answers with. Both read the vendored spec, so neither costs a request, and `--spec` takes the path with its ids still in it so you can ask about the one you just requested. The catalogue names the command that covers a path where there is one; those commands render the response and carry its caveats, so they are the better way in.
+
+`{project_id}` and `{organization_id}` are filled in from the resolved project and the active organization, so a path can be pasted from the [API reference](https://developer.smartbear.com/bugsnag/docs/bugsnag-data-access-api) as it is written there. Quote it: braces and query strings are shell syntax.
+
+Still read-only — the method is always GET — and still inside the same host allowlist, retries and exit codes as everything else. `X-Total-Count` and the command that fetches the next page go to stderr, so stdout stays a clean JSON document.
+
 ## Output
 
 Text by default, whether or not you are on a terminal:
