@@ -16,7 +16,6 @@ import (
 // TestAPIPassesTheResponseThrough is the point of the command: an endpoint with no
 // view of its own still reaches the caller, with the API's values intact.
 func TestAPIPassesTheResponseThrough(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("api", "/projects/{project_id}/errors")
 
@@ -37,7 +36,6 @@ func TestAPIPassesTheResponseThrough(t *testing.T) {
 // TestAPIReturnsASingleObjectAsAnObject: nothing is wrapped, so an endpoint that
 // answers with one object is not turned into a one-element array.
 func TestAPIReturnsASingleObjectAsAnObject(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("api", "/projects/{project_id}/errors/6a3a318a90a602cb08300beb")
 
@@ -49,7 +47,6 @@ func TestAPIReturnsASingleObjectAsAnObject(t *testing.T) {
 // TestAPIFillsInTheIdsItAlreadyKnows, so a path can be pasted from the API
 // reference without first running two commands to look the ids up.
 func TestAPIFillsInTheIdsItAlreadyKnows(t *testing.T) {
-
 	for _, path := range []string{
 		"/organizations/{organization_id}/projects",
 		"/organizations/{org}/projects",
@@ -66,7 +63,6 @@ func TestAPIFillsInTheIdsItAlreadyKnows(t *testing.T) {
 // this command itself prints, has to work — and must not be a way to send the
 // token to whatever host it names.
 func TestAPIKeepsOnlyThePathOfAURL(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("api", "https://api.bugsnag.com/projects/p-example-api/errors?per_page=2")
 
@@ -80,7 +76,6 @@ func TestAPIKeepsOnlyThePathOfAURL(t *testing.T) {
 // TestAPIQueryParametersAreEscaped, so a value with a space or an ampersand in it
 // needs no encoding by hand.
 func TestAPIQueryParametersAreEscaped(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("api", "/projects/{project_id}/errors",
 		"--query", "sort=first_seen",
@@ -95,7 +90,6 @@ func TestAPIQueryParametersAreEscaped(t *testing.T) {
 
 // TestAPIQueryParametersJoinAQueryAlreadyInThePath, rather than replacing it.
 func TestAPIQueryParametersJoinAQueryAlreadyInThePath(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("api", "/projects/{project_id}/errors?per_page=2", "--query", "sort=first_seen")
 
@@ -111,7 +105,6 @@ func TestAPIQueryParametersJoinAQueryAlreadyInThePath(t *testing.T) {
 // next page is given as the command that fetches it, and both go to stderr so
 // stdout stays a clean JSON document.
 func TestAPIReportsWhatTheHeadersSaid(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("api", "/projects/{project_id}/errors", "--query", "per_page=2")
 
@@ -128,7 +121,6 @@ func TestAPIReportsWhatTheHeadersSaid(t *testing.T) {
 
 // TestAPILimitFollowsPagesToReachIt, the same way the typed list commands do.
 func TestAPILimitFollowsPagesToReachIt(t *testing.T) {
-
 	h := clitest.New(t)
 	h.Server.Errors = manyErrors(35)
 
@@ -145,7 +137,6 @@ func TestAPILimitFollowsPagesToReachIt(t *testing.T) {
 // TestAPIAllPagesConcatenatesThePages into one array, since two JSON arrays cannot
 // be joined by appending their bytes.
 func TestAPIAllPagesConcatenatesThePages(t *testing.T) {
-
 	h := clitest.New(t)
 	h.Server.Errors = manyErrors(35)
 
@@ -162,7 +153,6 @@ func TestAPIAllPagesConcatenatesThePages(t *testing.T) {
 // TestAPIDryRunSendsNothing, so a hand-written path and query can be read back
 // before it is used against the live API.
 func TestAPIDryRunSendsNothing(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("api", "/projects/{project_id}/errors", "--query", "sort=first_seen",
 		"--dry-run", "--project", "p-example-api")
@@ -183,7 +173,6 @@ func TestAPIDryRunSendsNothing(t *testing.T) {
 // TestAPIFailuresKeepTheirExitCodes: the passthrough goes through the same
 // classification as everything else, so a script can still branch on the code.
 func TestAPIFailuresKeepTheirExitCodes(t *testing.T) {
-
 	h := clitest.New(t)
 	h.Server.Status = 404
 	h.Server.Body = `{"errors":["Not Found"]}`
@@ -198,7 +187,6 @@ func TestAPIFailuresKeepTheirExitCodes(t *testing.T) {
 // TestAPIRejectsWhatItCannotSend, rather than putting a malformed parameter on the
 // wire and reporting whatever the API made of it.
 func TestAPIRejectsWhatItCannotSend(t *testing.T) {
-
 	for _, args := range [][]string{
 		{"api", "/projects/{project_id}/errors", "--query", "nonsense"},
 		{"api", "?per_page=2"},
@@ -213,7 +201,6 @@ func TestAPIRejectsWhatItCannotSend(t *testing.T) {
 // TestAPIWithNoPathSaysHowToFindOne. A passthrough is useless without knowing what
 // to pass it, so the failure names the flag that answers that.
 func TestAPIWithNoPathSaysHowToFindOne(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("api")
 
@@ -225,7 +212,6 @@ func TestAPIWithNoPathSaysHowToFindOne(t *testing.T) {
 // spec, so it needs no token, no project and no request — and it covers the
 // endpoints the generated client prunes, which are the ones worth discovering.
 func TestListPathsIsTheDiscoveryMechanism(t *testing.T) {
-
 	h := clitest.NewSignedOut(t)
 	got := h.Run("api", "--list-paths")
 
@@ -245,7 +231,6 @@ func TestListPathsIsTheDiscoveryMechanism(t *testing.T) {
 // TestSpecSaysWhatAPathTakes, which is the half of discovery the catalogue does
 // not cover: a path is no use without knowing the parameters it accepts.
 func TestSpecSaysWhatAPathTakes(t *testing.T) {
-
 	h := clitest.NewSignedOut(t)
 	got := h.Run("api", "/projects/{project_id}/releases", "--spec")
 
@@ -266,7 +251,6 @@ func TestSpecSaysWhatAPathTakes(t *testing.T) {
 // TestSpecTakesThePathYouJustRequested, ids and all, rather than only the form
 // the spec writes it in.
 func TestSpecTakesThePathYouJustRequested(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("api", "/projects/p-example-api/errors/6a3a318a90a602cb08300beb/events", "--spec")
 
@@ -278,7 +262,6 @@ func TestSpecTakesThePathYouJustRequested(t *testing.T) {
 // silence is not proof the endpoint is absent, and the message says as much
 // rather than implying the request would fail.
 func TestSpecSaysSoWhenItCannotAnswer(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("api", "/nope/whatever", "--spec")
 
@@ -292,7 +275,6 @@ func TestSpecSaysSoWhenItCannotAnswer(t *testing.T) {
 // commands that render these responses rather than reading as an invitation to
 // bypass them.
 func TestListPathsNamesTheCommandThatCoversAPath(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("api", "--list-paths")
 

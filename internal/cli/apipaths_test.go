@@ -13,7 +13,6 @@ import (
 // spec refresh that renames an endpoint would silently stop pointing at the
 // command that reads it properly.
 func TestEveryMappedPathIsReal(t *testing.T) {
-
 	endpoints, err := openapi.Readable()
 	assert.NilError(t, err)
 

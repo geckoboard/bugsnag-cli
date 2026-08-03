@@ -15,7 +15,6 @@ import (
 // the pruned client, which is the point: the endpoints codegen leaves out are
 // exactly the ones worth discovering.
 func TestReadableIsTheCatalogueOfWhatCanBeAsked(t *testing.T) {
-
 	endpoints, err := openapi.Readable()
 	assert.NilError(t, err)
 	assert.Check(t, len(endpoints) > 50, "only %d endpoints; the spec was not read", len(endpoints))
@@ -43,7 +42,6 @@ func TestReadableIsTheCatalogueOfWhatCanBeAsked(t *testing.T) {
 // are all worth having, and choosing between them is what a summary would have to
 // do.
 func TestDescribeHandsBackTheSpecItself(t *testing.T) {
-
 	fragment, found, err := openapi.Describe("/projects/{project_id}/releases")
 	assert.NilError(t, err)
 	assert.Assert(t, found)
@@ -68,7 +66,6 @@ func TestDescribeHandsBackTheSpecItself(t *testing.T) {
 // bracket syntax they describe is what --query sends. Discovery reads the spec as
 // vendored so it still names them.
 func TestDescribeKeepsWhatTheOverlayRemoves(t *testing.T) {
-
 	fragment, found, err := openapi.Describe("/projects/{project_id}/errors")
 	assert.NilError(t, err)
 	assert.Assert(t, found)
@@ -79,7 +76,6 @@ func TestDescribeKeepsWhatTheOverlayRemoves(t *testing.T) {
 // TestDescribeMatchesAPathAsTyped: the path worth asking about is usually the one
 // just requested, which has its ids in it rather than the spec's placeholders.
 func TestDescribeMatchesAPathAsTyped(t *testing.T) {
-
 	fragment, found, err := openapi.Describe("/projects/515fb933/errors/6a3272b8/events")
 	assert.NilError(t, err)
 	assert.Assert(t, found)
@@ -90,7 +86,6 @@ func TestDescribeMatchesAPathAsTyped(t *testing.T) {
 // could belong to, and answering with the nearest one would describe the wrong
 // endpoint.
 func TestDescribeMissesRatherThanGuesses(t *testing.T) {
-
 	for _, path := range []string{"/nope/whatever", "/projects", ""} {
 		_, found, err := openapi.Describe(path)
 		assert.NilError(t, err)
@@ -103,7 +98,6 @@ func TestDescribeMissesRatherThanGuesses(t *testing.T) {
 // catalogue that handed out the spec's paths would be sending people to a dead
 // address.
 func TestTheTrendPathsAreTheOnesThatAnswer(t *testing.T) {
-
 	endpoints, err := openapi.Readable()
 	assert.NilError(t, err)
 

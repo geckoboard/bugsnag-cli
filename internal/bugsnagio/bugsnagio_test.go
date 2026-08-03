@@ -52,7 +52,6 @@ func newClient(t *testing.T, srv *httptest.Server) *bugsnagio.Client {
 }
 
 func TestStreamYieldsEveryItem(t *testing.T) {
-
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("X-Total-Count", "3")
 		w.Write([]byte(`[{"id":"a","events":1},{"id":"b","events":2},{"id":"c","events":3}]`))
@@ -69,7 +68,6 @@ func TestStreamYieldsEveryItem(t *testing.T) {
 }
 
 func TestMissingTotalCountIsMinusOne(t *testing.T) {
-
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte(`[{"id":"a"}]`))
 	}))
@@ -89,7 +87,6 @@ func TestMissingTotalCountIsMinusOne(t *testing.T) {
 // ObjectId, ISO timestamp, integer, opaque token — so constructing one is never
 // safe. The token here is deliberately something the CLI could not have derived.
 func TestFollowsLinkVerbatim(t *testing.T) {
-
 	const opaque = "eyJvZmZzZXQiOiJvcGFxdWUtdG9rZW4tMiJ9"
 
 	var paths []string
@@ -123,7 +120,6 @@ func TestFollowsLinkVerbatim(t *testing.T) {
 // TestWithoutAllPagesStopsAtOnePage but still reports the next URL, so the
 // footer can say there is more.
 func TestWithoutAllPagesStopsAtOnePage(t *testing.T) {
-
 	var hits atomic.Int64
 	var srv *httptest.Server
 	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -146,7 +142,6 @@ func TestWithoutAllPagesStopsAtOnePage(t *testing.T) {
 // token-exfiltration defence. It asserts the attacker recorded zero requests, not
 // merely that the token was absent.
 func TestRefusesToFollowLinkToAnotherHost(t *testing.T) {
-
 	var attackerHits atomic.Int64
 	attacker := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		attackerHits.Add(1)
@@ -170,7 +165,6 @@ func TestRefusesToFollowLinkToAnotherHost(t *testing.T) {
 }
 
 func TestDetectsPaginationLoop(t *testing.T) {
-
 	var hits atomic.Int64
 	var srv *httptest.Server
 	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -191,7 +185,6 @@ func TestDetectsPaginationLoop(t *testing.T) {
 }
 
 func TestLimitStopsEarly(t *testing.T) {
-
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte(`[{"id":"a"},{"id":"b"},{"id":"c"},{"id":"d"}]`))
 	}))
@@ -206,7 +199,6 @@ func TestLimitStopsEarly(t *testing.T) {
 }
 
 func TestNonArrayResponseIsADecodeError(t *testing.T) {
-
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte(`{"not":"an array"}`))
 	}))
@@ -221,7 +213,6 @@ func TestNonArrayResponseIsADecodeError(t *testing.T) {
 }
 
 func TestOneFetchesASingleObject(t *testing.T) {
-
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte(`{"id":"a","error_class":"*fmt.wrapError","events":70681}`))
 	}))
@@ -237,7 +228,6 @@ func TestOneFetchesASingleObject(t *testing.T) {
 }
 
 func TestQueryIsSent(t *testing.T) {
-
 	var gotQuery string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotQuery = r.URL.RawQuery
@@ -262,7 +252,6 @@ func TestQueryIsSent(t *testing.T) {
 }
 
 func TestContextCancellationStopsStreaming(t *testing.T) {
-
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte(`[{"id":"a"}]`))
 	}))
@@ -281,7 +270,6 @@ func TestContextCancellationStopsStreaming(t *testing.T) {
 // TestJSONSinkIsByteFaithful is the promise the raw path makes: key order,
 // number literals and escapes survive, so `--json | jq .` matches `curl | jq .`.
 func TestJSONSinkIsByteFaithful(t *testing.T) {
-
 	// Deliberately hostile: keys out of alphabetical order, mixed case, a number
 	// past float64's exact integer range, and an unknown nested field.
 	const body = `[{"zebra":1,"Alpha":"A","events":9007199254740993,` +
@@ -315,7 +303,6 @@ func TestJSONSinkIsByteFaithful(t *testing.T) {
 }
 
 func TestJSONSinkEmptyArray(t *testing.T) {
-
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte(`[]`))
 	}))
@@ -334,7 +321,6 @@ func TestJSONSinkEmptyArray(t *testing.T) {
 // TestJSONSinkAcrossPagesProducesOneArray: two pages cannot be joined by
 // appending their bytes, so the array is rebuilt around the items.
 func TestJSONSinkAcrossPagesProducesOneArray(t *testing.T) {
-
 	var srv *httptest.Server
 	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("p") == "" {
@@ -361,7 +347,6 @@ func TestJSONSinkAcrossPagesProducesOneArray(t *testing.T) {
 // TestTypedSinkDegradesPerItem: one item the spec models wrongly must not take
 // out the rest of the response.
 func TestTypedSinkDegradesPerItem(t *testing.T) {
-
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		// The middle item has events as a string, which the typed decode
 		// rejects.
@@ -388,7 +373,6 @@ func TestTypedSinkDegradesPerItem(t *testing.T) {
 // TestTypedSinkInvalidJSONIsAnError is tier 3: there is nothing truthful left to
 // show, so this one does fail.
 func TestTypedSinkInvalidJSONIsAnError(t *testing.T) {
-
 	sink := bugsnagio.NewTypedSink[errorItem]()
 	err := sink.Item(json.RawMessage(`{"id":`))
 	assert.Assert(t, err != nil, "expected an error for invalid JSON")
@@ -397,7 +381,6 @@ func TestTypedSinkInvalidJSONIsAnError(t *testing.T) {
 
 // TestTeeSinkFeedsBoth proves one pass over the response can serve both paths.
 func TestTeeSinkFeedsBoth(t *testing.T) {
-
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte(`[{"id":"a","events":1},{"id":"b","events":2}]`))
 	}))
@@ -422,7 +405,6 @@ func TestTeeSinkFeedsBoth(t *testing.T) {
 // TestGeneratedBuilderPlugsIn: URL and parameter construction comes from the
 // spec via the generated New*Request builders, not from hand-assembled paths.
 func TestGeneratedBuilderPlugsIn(t *testing.T) {
-
 	var gotPath, gotQuery string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPath, gotQuery = r.URL.Path, r.URL.RawQuery
@@ -459,7 +441,6 @@ func TestGeneratedBuilderPlugsIn(t *testing.T) {
 // is the part that has to survive: the API pairs each condition's type with the
 // value that follows it, so sorting them apart changes what was asked for.
 func TestExtraQueryIsAppendedInOrder(t *testing.T) {
-
 	var gotRaw string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotRaw = r.URL.RawQuery
@@ -507,7 +488,6 @@ func (countingSink) Close(bugsnagio.Meta) error { return nil }
 // the client to have processed it, and only then writes the second: if the
 // decoder buffered the whole array first, this would deadlock.
 func TestItemsAreStreamedNotBuffered(t *testing.T) {
-
 	gotFirst := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		flusher, ok := w.(http.Flusher)

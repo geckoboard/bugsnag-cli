@@ -16,7 +16,6 @@ import (
 // it a hash where an array is wanted. Every filter flag in the CLI depended on
 // getting this right.
 func TestEncodingIsTheUnindexedBracketForm(t *testing.T) {
-
 	var s filters.Set
 	s.Add(filters.FieldStatus, filters.OpEq, "open")
 
@@ -29,7 +28,6 @@ func TestEncodingIsTheUnindexedBracketForm(t *testing.T) {
 // part of the meaning. Encoding through a url.Values would sort every type ahead
 // of every value and silently ask for something else.
 func TestTwoConditionsOnOneFieldStayPaired(t *testing.T) {
-
 	var s filters.Set
 	s.AddValue(filters.FieldSeverity, "error")
 	s.AddValue(filters.FieldSeverity, "!warning")
@@ -41,7 +39,6 @@ func TestTwoConditionsOnOneFieldStayPaired(t *testing.T) {
 
 // TestEncodeEscapesForTheWire, while String stays readable for --dry-run.
 func TestEncodeEscapesForTheWire(t *testing.T) {
-
 	var s filters.Set
 	s.Add(filters.FieldSince, filters.OpEq, "2026-07-21T22:00:00Z")
 
@@ -53,7 +50,6 @@ func TestEncodeEscapesForTheWire(t *testing.T) {
 // TestEmptySetEncodesToNothing, so a request without filters carries no trace of
 // them.
 func TestEmptySetEncodesToNothing(t *testing.T) {
-
 	var s filters.Set
 	assert.Assert(t, s.Params() == nil, "Params = %v, want nil", s.Params())
 	assert.Equal(t, s.String(), "")
@@ -61,7 +57,6 @@ func TestEmptySetEncodesToNothing(t *testing.T) {
 
 // TestNegationIsALeadingBang, which is the whole negation syntax.
 func TestNegationIsALeadingBang(t *testing.T) {
-
 	var s filters.Set
 	s.AddValue(filters.FieldStatus, "!fixed")
 

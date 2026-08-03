@@ -12,7 +12,6 @@ import (
 var now = time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
 
 func TestRelative(t *testing.T) {
-
 	for _, tc := range []struct {
 		name string
 		ago  time.Duration
@@ -44,7 +43,6 @@ func TestRelative(t *testing.T) {
 // "relative": an agent may feed a timestamp straight back as a filter value, and
 // relative time also makes output undiffable between runs.
 func TestTimestampAutoDependsOnTTY(t *testing.T) {
-
 	const raw = "2026-07-28T11:59:22+00:00"
 
 	tty := render.Mode{TTY: true, Width: 80, Time: render.TimeAuto, Now: now}
@@ -57,7 +55,6 @@ func TestTimestampAutoDependsOnTTY(t *testing.T) {
 // TestTimestampRawIsByteFaithful: --time raw must echo exactly what the API sent,
 // so the value round-trips as a filter.
 func TestTimestampRawIsByteFaithful(t *testing.T) {
-
 	m := render.Mode{TTY: true, Width: 80, Time: render.TimeRaw, Now: now}
 	for _, raw := range []string{
 		"2026-07-28T11:59:22+00:00",
@@ -72,7 +69,6 @@ func TestTimestampRawIsByteFaithful(t *testing.T) {
 // not know, showing it verbatim keeps the only information we had. Replacing it
 // with a placeholder would throw that away.
 func TestTimestampUnparseablePassesThrough(t *testing.T) {
-
 	m := render.Mode{TTY: true, Width: 80, Time: render.TimeRelative, Now: now}
 	const weird = "last Tuesday-ish"
 
@@ -80,7 +76,6 @@ func TestTimestampUnparseablePassesThrough(t *testing.T) {
 }
 
 func TestTimestampEmpty(t *testing.T) {
-
 	m := render.Mode{TTY: true, Width: 80, Now: now}
 	assert.Equal(t, m.Timestamp(""), "")
 }
@@ -88,7 +83,6 @@ func TestTimestampEmpty(t *testing.T) {
 // TestTimestampRange reads newest-first, the way the dashboard does, with the
 // absolute dates alongside so the range can be lined up with a chart.
 func TestTimestampRange(t *testing.T) {
-
 	m := render.Mode{TTY: true, Width: 80, Time: render.TimeRelative, Now: now}
 	got := m.TimestampRange("2026-06-28T12:00:00Z", "2026-07-28T11:59:00Z")
 
@@ -96,7 +90,6 @@ func TestTimestampRange(t *testing.T) {
 }
 
 func TestTimestampRangePipedIsRaw(t *testing.T) {
-
 	const from, to = "2026-06-28T12:00:00Z", "2026-07-28T11:59:00Z"
 
 	m := render.Mode{TTY: false, Width: 80, Time: render.TimeAuto, Now: now}
@@ -104,7 +97,6 @@ func TestTimestampRangePipedIsRaw(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-
 	for _, tc := range []struct {
 		in   int
 		want string
@@ -126,7 +118,6 @@ func TestCount(t *testing.T) {
 }
 
 func TestCompact(t *testing.T) {
-
 	for _, tc := range []struct {
 		in   int
 		want string

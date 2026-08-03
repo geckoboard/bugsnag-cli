@@ -15,7 +15,6 @@ import (
 // scripts and agents, so a change here is a breaking change and should be a
 // deliberate edit to this table.
 func TestEveryKindHasItsCode(t *testing.T) {
-
 	for _, tc := range []struct {
 		kind apierr.Kind
 		name string
@@ -42,7 +41,6 @@ func TestEveryKindHasItsCode(t *testing.T) {
 }
 
 func TestOfNilIsOK(t *testing.T) {
-
 	assert.Equal(t, exitcode.Of(nil), exitcode.OK)
 }
 
@@ -50,7 +48,6 @@ func TestOfNilIsOK(t *testing.T) {
 // means retry`. Rate limited, server and network are retryable; nothing else
 // is, because nothing else will behave differently on a second attempt.
 func TestRetryableBand(t *testing.T) {
-
 	want := map[int]bool{
 		exitcode.OK:            false,
 		exitcode.Internal:      false,
@@ -82,7 +79,6 @@ func TestRetryableBand(t *testing.T) {
 // from strings.Contains on the human-readable message. Identical message text
 // with different statuses must produce different codes.
 func TestOfClassifiesFromStatusNotMessage(t *testing.T) {
-
 	const sameMessage = `{"errors":["project_id is required"]}`
 
 	for _, tc := range []struct {
@@ -108,7 +104,6 @@ func TestOfClassifiesFromStatusNotMessage(t *testing.T) {
 // TestOfWrappedError checks the Kind survives wrapping, since errors are
 // wrapped with context as they travel up to main.
 func TestOfWrappedError(t *testing.T) {
-
 	base := apierr.New(apierr.KindUntrustedHost, "refusing to follow Link to evil.example")
 	wrapped := fmt.Errorf("paginating: %w", fmt.Errorf("page 2: %w", base))
 
@@ -119,14 +114,12 @@ func TestOfWrappedError(t *testing.T) {
 // tool, so it must report as internal rather than defaulting to something that
 // looks like an expected failure.
 func TestOfUnclassifiedIsInternal(t *testing.T) {
-
 	assert.Equal(t, exitcode.Of(errors.New("boom")), exitcode.Internal)
 }
 
 // TestOfContextErrors: Ctrl-C must be exit 10 and must not be retryable, even
 // when the context error arrives unwrapped.
 func TestOfContextErrors(t *testing.T) {
-
 	assert.Equal(t, exitcode.Of(context.Canceled), exitcode.Canceled)
 	assert.Assert(t, !exitcode.Retryable(exitcode.Canceled), "canceled must not be retryable: the user asked us to stop")
 

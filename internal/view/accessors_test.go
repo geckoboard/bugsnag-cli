@@ -117,7 +117,6 @@ const nodeFullReport = `{
 // Reading the top-level error_class and message, which `events list` does not
 // send, yields zero values; both live in exceptions[0].
 func TestErrorClassAndMessageAcrossShapes(t *testing.T) {
-
 	for _, tc := range []struct {
 		name       string
 		payload    string
@@ -130,7 +129,6 @@ func TestErrorClassAndMessageAcrossShapes(t *testing.T) {
 		{"node full report, snake_case", nodeFullReport, "TypeError", "Cannot read properties"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-
 			var e view.Event
 			assert.NilError(t, json.Unmarshal([]byte(tc.payload), &e))
 
@@ -146,9 +144,7 @@ func TestErrorClassAndMessageAcrossShapes(t *testing.T) {
 // not read as false. Frame filtering keys off this, so getting it wrong shows an
 // empty stack trace on every Go service.
 func TestInProjectIsThreeValued(t *testing.T) {
-
 	t.Run("absent or null on go events", func(t *testing.T) {
-
 		frames := view.ExceptionsFrom(json.RawMessage(goFullReport))[0].Stacktrace
 		assert.Assert(t, is.Len(frames, 2))
 		for i, f := range frames {
@@ -159,7 +155,6 @@ func TestInProjectIsThreeValued(t *testing.T) {
 	})
 
 	t.Run("present on rails events", func(t *testing.T) {
-
 		frames := view.ExceptionsFrom(json.RawMessage(railsFullReport))[0].Stacktrace
 		assert.Check(t, is.Equal(frames[0].InProject, view.Yes))
 		assert.Check(t, is.Equal(frames[1].InProject, view.No))
@@ -170,7 +165,6 @@ func TestInProjectIsThreeValued(t *testing.T) {
 	})
 
 	t.Run("camelCase key is read too", func(t *testing.T) {
-
 		frames := view.ExceptionsFrom(json.RawMessage(nodeThinProjection))[0].Stacktrace
 		assert.Check(t, is.Equal(frames[0].InProject, view.Yes))
 	})
@@ -179,13 +173,11 @@ func TestInProjectIsThreeValued(t *testing.T) {
 // TestColumnNumberIsRead covers the field the spec declares a string and the API
 // returns as an integer, in both key casings.
 func TestColumnNumberIsRead(t *testing.T) {
-
 	for name, payload := range map[string]string{
 		"camelCase columnNumber":   nodeThinProjection,
 		"snake_case column_number": nodeFullReport,
 	} {
 		t.Run(name, func(t *testing.T) {
-
 			frame := view.ExceptionsFrom(json.RawMessage(payload))[0].Stacktrace[0]
 			assert.Check(t, is.Equal(frame.ColumnNumber, 13))
 			assert.Check(t, is.Equal(frame.LineNumber, 27))
@@ -196,7 +188,6 @@ func TestColumnNumberIsRead(t *testing.T) {
 // TestColumnNumberAcceptsTheStringForm, in case a platform sends what the spec
 // declares.
 func TestColumnNumberAcceptsTheStringForm(t *testing.T) {
-
 	payload := `{"exceptions":[{"error_class":"E","stacktrace":[{"file":"a.js","column_number":"13","line_number":"27"}]}]}`
 	frame := view.ExceptionsFrom(json.RawMessage(payload))[0].Stacktrace[0]
 
@@ -205,7 +196,6 @@ func TestColumnNumberAcceptsTheStringForm(t *testing.T) {
 }
 
 func TestCodeSnippetIsRead(t *testing.T) {
-
 	frame := view.ExceptionsFrom(json.RawMessage(railsFullReport))[0].Stacktrace[0]
 	assert.Assert(t, is.Len(frame.Code, 3))
 	assert.Check(t, is.Equal(frame.Code["42"], "    @user.foo"))
@@ -214,7 +204,6 @@ func TestCodeSnippetIsRead(t *testing.T) {
 // TestExceptionChainOrder: the first entry is the outermost exception, and each
 // later one caused the previous. That is the order "Caused by" reads in.
 func TestExceptionChainOrder(t *testing.T) {
-
 	payload := `{"exceptions":[
 		{"error_class":"*fmt.wrapError","message":"outer"},
 		{"error_class":"*errors.errorString","message":"inner cause"}
@@ -227,7 +216,6 @@ func TestExceptionChainOrder(t *testing.T) {
 }
 
 func TestMalformedPayloadsReturnNothingRatherThanPanicking(t *testing.T) {
-
 	for _, payload := range []string{
 		``,
 		`null`,

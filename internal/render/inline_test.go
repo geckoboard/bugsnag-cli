@@ -9,7 +9,6 @@ import (
 // TestCodeHandlesBackticks: release versions and hosts go through Code, and a
 // value containing a backtick must not break out of the span.
 func TestCodeHandlesBackticks(t *testing.T) {
-
 	for _, tc := range []struct {
 		name string
 		in   string

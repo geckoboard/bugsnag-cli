@@ -19,7 +19,6 @@ import (
 // config, project autodetect, transport, streaming, the lenient readers and the
 // laid-out render.
 func TestErrorsListIsTheInbox(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list")
 
@@ -49,7 +48,6 @@ func TestErrorsListIsTheInbox(t *testing.T) {
 // way to badly misinform someone. The list names the interval once, in the
 // header, and gives it explicit dates rather than a vague label like "in range".
 func TestErrorsListNamesTheIntervalItCounts(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list")
 
@@ -65,7 +63,6 @@ func TestErrorsListNamesTheIntervalItCounts(t *testing.T) {
 // belongs on the same line as its row: one error, one line, nothing to stitch
 // back together.
 func TestErrorsListCarriesTheMessage(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list")
 
@@ -97,7 +94,6 @@ func tsvHeader(t *testing.T, stdout string) string {
 // TestPaginationFooterIsAlwaysWritten. Without the footer, thirty rows look like
 // the whole answer when thousands exist.
 func TestPaginationFooterIsAlwaysWritten(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--limit", "2")
 
@@ -109,7 +105,6 @@ func TestPaginationFooterIsAlwaysWritten(t *testing.T) {
 // meet it. The fake server mints offsets the CLI could not have constructed, so
 // this genuinely tests that Link is followed verbatim.
 func TestLimitFollowsOpaqueLinksAcrossPages(t *testing.T) {
-
 	h := clitest.New(t)
 	h.Server.Errors = manyErrors(35)
 
@@ -130,7 +125,6 @@ func TestLimitFollowsOpaqueLinksAcrossPages(t *testing.T) {
 // TestAllPagesFetchesEverything: --all-pages lifts the limit and follows Link to
 // the end.
 func TestAllPagesFetchesEverything(t *testing.T) {
-
 	h := clitest.New(t)
 	h.Server.Errors = manyErrors(35)
 
@@ -152,7 +146,6 @@ func manyErrors(n int) []json.RawMessage {
 
 // TestJSONPreservesValues is the promise of the raw path: values unchanged.
 func TestJSONPreservesValues(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--json")
 
@@ -175,7 +168,6 @@ func TestJSONPreservesValues(t *testing.T) {
 }
 
 func TestJSONFlagAndFormatFlagAgree(t *testing.T) {
-
 	h := clitest.New(t)
 
 	shorthand := h.Run("errors", "list", "--json")
@@ -188,7 +180,6 @@ func TestJSONFlagAndFormatFlagAgree(t *testing.T) {
 // facts that are the same on every occurrence are stated once above the table,
 // and the columns left are the event id, when it arrived and its context.
 func TestErrorsEventsHoistsInvariantFacts(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "events", "6a3a318a90a602cb08300beb")
 
@@ -229,7 +220,6 @@ func firstNonTabLine(t *testing.T, stdout, title string) string {
 // error has users, and is dropped when they are all zero, because these projects
 // report 0 when nothing identifies a user.
 func TestErrorsListShowsUsersOnlyWhenPresent(t *testing.T) {
-
 	t.Run("dropped when all zero", func(t *testing.T) {
 		h := clitest.New(t)
 		got := h.Run("errors", "list")
@@ -257,7 +247,6 @@ func TestErrorsListShowsUsersOnlyWhenPresent(t *testing.T) {
 // within one error the message varies from occurrence to occurrence, which is the
 // reason to be looking at a list of them. Verified against two live projects.
 func TestErrorsEventsCarriesEachOccurrencesMessage(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "events", "6a3a318a90a602cb08300beb")
 
@@ -279,7 +268,6 @@ func TestErrorsEventsCarriesEachOccurrencesMessage(t *testing.T) {
 
 // TestEventsViewShowsTheChainAndHidesTheRest.
 func TestErrorsEventShowsTheChainAndHidesTheRest(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "event", "ev00000000000000000001")
 
@@ -302,7 +290,6 @@ func TestErrorsEventShowsTheChainAndHidesTheRest(t *testing.T) {
 // OS and locale, but only the browser name and version identify where a
 // client-side error came from, so only those are surfaced by default.
 func TestErrorsEventShowsBrowserByDefault(t *testing.T) {
-
 	h := clitest.New(t)
 	h.Server.LatestEvent = []byte(`{
 		"id": "ev00000000000000000042",
@@ -332,7 +319,6 @@ func TestErrorsEventShowsBrowserByDefault(t *testing.T) {
 // so that flag has to produce the whole trace: widening which frames are eligible
 // while leaving the cap in place would make the advice useless.
 func TestFramesFullLiftsTheFrameCap(t *testing.T) {
-
 	h := clitest.New(t)
 	// A trace longer than the default cap.
 	var frames []string
@@ -362,7 +348,6 @@ func TestFramesFullLiftsTheFrameCap(t *testing.T) {
 // TestGoEventShowsEveryFrame: in_project is absent on every Go frame, so frame
 // filtering must disable itself rather than show nothing.
 func TestGoEventShowsEveryFrame(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "event", "ev00000000000000000001")
 
@@ -376,7 +361,6 @@ func TestGoEventShowsEveryFrame(t *testing.T) {
 // query parameter, an auth_token metaData value and an x-honeycomb-team ingest
 // key, all live. A Honeycomb trace id is not a secret, so it is left shown.
 func TestErrorsEventRedactsSecrets(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "event", "ev00000000000000000001", "--metadata", "--request")
 
@@ -394,7 +378,6 @@ func TestErrorsEventRedactsSecrets(t *testing.T) {
 // TestJSONIsNeverRedacted: the raw path preserves the API's values, and its help
 // says so, so a secret in the payload is present on the JSON path.
 func TestJSONIsNeverRedacted(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "event", "ev00000000000000000001", "--json")
 
@@ -403,7 +386,6 @@ func TestJSONIsNeverRedacted(t *testing.T) {
 
 // TestErrorsViewMirrorsTheDetailPage.
 func TestErrorsViewMirrorsTheDetailPage(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "view", "6a3a318a90a602cb08300beb")
 
@@ -428,7 +410,6 @@ func TestErrorsViewMirrorsTheDetailPage(t *testing.T) {
 // TestErrorsViewOptionalSections: the trend and the summaries each cost a request,
 // so they are fetched only when asked for.
 func TestErrorsViewOptionalSections(t *testing.T) {
-
 	t.Run("trend", func(t *testing.T) {
 		h := clitest.New(t)
 		got := h.Run("errors", "view", "6a3a318a90a602cb08300beb", "--trend")
@@ -481,7 +462,6 @@ func TestErrorsViewOptionalSections(t *testing.T) {
 }
 
 func TestErrorsViewTrendTable(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "view", "6a3a318a90a602cb08300beb", "--trend-table")
 
@@ -492,7 +472,6 @@ func TestErrorsViewTrendTable(t *testing.T) {
 // TestAllNilErrorStillRenders: every optional field absent is a shape a
 // defensive renderer has to survive.
 func TestAllNilErrorStillRenders(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list")
 
@@ -503,7 +482,6 @@ func TestAllNilErrorStillRenders(t *testing.T) {
 // TestProjectAutodetectPersistsAndNotesOnStderr: the note must not go to stdout,
 // or it would corrupt a --json pipeline.
 func TestProjectAutodetectPersistsAndNotesOnStderr(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--json")
 
@@ -526,7 +504,6 @@ func TestProjectAutodetectPersistsAndNotesOnStderr(t *testing.T) {
 
 // TestCachedProjectSkipsAutodetect.
 func TestCachedProjectSkipsAutodetect(t *testing.T) {
-
 	h := clitest.New(t)
 	h.Run("errors", "list")
 	first := h.Server.RequestCount()
@@ -544,7 +521,6 @@ func TestCachedProjectSkipsAutodetect(t *testing.T) {
 
 // TestPrefixPairDoesNotCrossMatch: worker must not resolve to worker-replica.
 func TestPrefixPairDoesNotCrossMatch(t *testing.T) {
-
 	h := clitest.New(t)
 	h.Remotes = map[string]string{"origin": "git@github.com:example-org/worker.git"}
 
@@ -558,7 +534,6 @@ func TestPrefixPairDoesNotCrossMatch(t *testing.T) {
 
 // TestNoGitRemoteExplainsItself rather than guessing a project.
 func TestNoGitRemoteExplainsItself(t *testing.T) {
-
 	h := clitest.New(t)
 	h.Remotes = nil
 
@@ -574,7 +549,6 @@ func TestNoGitRemoteExplainsItself(t *testing.T) {
 // index makes the filter a hash where an array is wanted, and every filtered
 // request comes back 400.
 func TestFilterEncodingIsTheBracketSyntax(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--status", "open", "--release-stage", "production")
 
@@ -596,7 +570,6 @@ func TestFilterEncodingIsTheBracketSyntax(t *testing.T) {
 
 // TestFilterNegation: a leading ! is the whole negation syntax.
 func TestFilterNegation(t *testing.T) {
-
 	h := clitest.New(t)
 	h.Run("errors", "list", "--status", "!fixed")
 
@@ -616,7 +589,6 @@ func TestFilterNegation(t *testing.T) {
 // raw query is asserted rather than a parsed map, because the order is the part
 // that carries the meaning.
 func TestSeveralConditionsOnOneFieldAreRepeatedPairs(t *testing.T) {
-
 	h := clitest.New(t)
 	h.Run("errors", "list", "--severity", "error", "--severity", "warning")
 
@@ -632,7 +604,6 @@ func TestSeveralConditionsOnOneFieldAreRepeatedPairs(t *testing.T) {
 // TestDryRunSendsNothing, so the filter encoding can be eyeballed before it is
 // used against the live API.
 func TestDryRunSendsNothing(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--status", "open", "--dry-run", "--project", "p-example-api")
 
@@ -652,7 +623,6 @@ func TestDryRunSendsNothing(t *testing.T) {
 // TestSinceIsResolvedToAnAbsoluteTime, so the request is reproducible and says
 // what it actually asked for.
 func TestSinceIsResolvedToAnAbsoluteTime(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--since", "7d", "--dry-run", "--project", "p-example-api")
 
@@ -664,7 +634,6 @@ func TestSinceIsResolvedToAnAbsoluteTime(t *testing.T) {
 // other filter. event.search and error.search are ids nobody documents and the
 // API ignores; the project's own catalogue calls it "search".
 func TestSearchEncodesWithNoNamespace(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--search", "circular", "--dry-run", "--project", "p-example-api")
 
@@ -676,7 +645,6 @@ func TestSearchEncodesWithNoNamespace(t *testing.T) {
 // TestFilterReachesAFieldWithNoFlagOfItsOwn, which is the only way to filter on a
 // project's custom fields.
 func TestFilterReachesAFieldWithNoFlagOfItsOwn(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list",
 		"--filter", "metaData.Query.widget_key=abc123", "--dry-run", "--project", "p-example-api")
@@ -688,7 +656,6 @@ func TestFilterReachesAFieldWithNoFlagOfItsOwn(t *testing.T) {
 // TestFilterOperators covers the four the API takes. A time operator resolves its
 // value the same way --since does, so the wire form does not depend on the route.
 func TestFilterOperators(t *testing.T) {
-
 	for _, tc := range []struct {
 		expr string
 		want string
@@ -709,7 +676,6 @@ func TestFilterOperators(t *testing.T) {
 // TestFilterSplitsOnTheFirstOperatorOnly: a field id carries none of = != > <,
 // while a message routinely carries all four.
 func TestFilterSplitsOnTheFirstOperatorOnly(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list",
 		"--filter", "event.message=a=b>c", "--dry-run", "--project", "p-example-api")
@@ -720,7 +686,6 @@ func TestFilterSplitsOnTheFirstOperatorOnly(t *testing.T) {
 
 // TestFilterWithoutAnOperatorIsAUsageError, and says what the forms are.
 func TestFilterWithoutAnOperatorIsAUsageError(t *testing.T) {
-
 	for _, expr := range []string{"event.class", "=TypeError", "event.class="} {
 		h := clitest.New(t)
 		got := h.Run("errors", "list", "--filter", expr)
@@ -736,7 +701,6 @@ func TestFilterWithoutAnOperatorIsAUsageError(t *testing.T) {
 // API answers 200 and ignores it. Nothing in the response says so — but a row
 // came back whose class the filter excludes, and that is proof.
 func TestFilterWarnsWhenTheRowsDisproveIt(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--filter", "error.class=NoSuchClass")
 
@@ -753,7 +717,6 @@ func TestFilterWarnsWhenTheRowsDisproveIt(t *testing.T) {
 // filter did nothing. The warning goes to stderr, leaving the document on stdout
 // still valid JSON.
 func TestFilterWarningReachesTheJSONPathToo(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--json", "--filter", "error.class=NoSuchClass")
 
@@ -769,7 +732,6 @@ func TestFilterWarningReachesTheJSONPathToo(t *testing.T) {
 // event.class is a field the API acts on, and every row that comes back agrees
 // with it.
 func TestFilterStaysQuietWhenTheFilterWorked(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--filter", "event.class=wrapError")
 
@@ -787,7 +749,6 @@ func TestFilterStaysQuietWhenTheFilterWorked(t *testing.T) {
 // errors where event.message matched four, the extra two carrying it only in the
 // frames of their latest event.
 func TestSearchIsNeverReportedAsIgnored(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--search", "NoSuchTermAnywhere")
 
@@ -799,7 +760,6 @@ func TestSearchIsNeverReportedAsIgnored(t *testing.T) {
 // TestAnUnobservableFilterIsNotSecondGuessed: an error carries no metaData, so
 // there is nothing in the rows that could disprove a filter on one.
 func TestAnUnobservableFilterIsNotSecondGuessed(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--filter", "metaData.Query.widget_key=abc123")
 
@@ -809,7 +769,6 @@ func TestAnUnobservableFilterIsNotSecondGuessed(t *testing.T) {
 }
 
 func TestUnknownFlagIsAUsageError(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--nonsense")
 
@@ -819,7 +778,6 @@ func TestUnknownFlagIsAUsageError(t *testing.T) {
 
 // TestAPIErrorsAreClassifiedByStatus, not by matching message text.
 func TestAPIErrorsAreClassifiedByStatus(t *testing.T) {
-
 	for _, tc := range []struct {
 		status int
 		want   int
@@ -848,7 +806,6 @@ func TestAPIErrorsAreClassifiedByStatus(t *testing.T) {
 }
 
 func TestAuthStatusNeverPrintsTheToken(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("auth", "status")
 
@@ -860,7 +817,6 @@ func TestAuthStatusNeverPrintsTheToken(t *testing.T) {
 
 // TestAuthLoginResolvesTheOrgSilentlyWhenThereIsOne.
 func TestAuthLoginResolvesTheOrgSilentlyWhenThereIsOne(t *testing.T) {
-
 	h := clitest.NewSignedOut(t)
 	got := h.Run("auth", "login", "--token", h.Server.Token)
 
@@ -874,7 +830,6 @@ func TestAuthLoginResolvesTheOrgSilentlyWhenThereIsOne(t *testing.T) {
 
 // TestCommandsWithoutATokenExplainThemselves rather than failing obscurely.
 func TestCommandsWithoutATokenExplainThemselves(t *testing.T) {
-
 	h := clitest.NewSignedOut(t)
 	got := h.Run("errors", "list")
 
@@ -884,7 +839,6 @@ func TestCommandsWithoutATokenExplainThemselves(t *testing.T) {
 }
 
 func TestProjectShowExplainsWhereTheProjectCameFrom(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("project", "show")
 
@@ -971,7 +925,6 @@ func TestProjectCacheIsIgnoredAfterAnOrgChange(t *testing.T) {
 }
 
 func TestProjectLinkAndUnlink(t *testing.T) {
-
 	h := clitest.New(t)
 
 	link := h.Run("project", "link", "p-worker")
@@ -988,7 +941,6 @@ func TestProjectLinkAndUnlink(t *testing.T) {
 // TestCachedProjectIsIgnoredAfterAnOrgChange: the cache records which
 // organization it belongs to, so switching cannot return another org's project.
 func TestCachedProjectIsIgnoredAfterAnOrgChange(t *testing.T) {
-
 	h := clitest.New(t)
 	h.Run("errors", "list")
 
@@ -1015,7 +967,6 @@ func TestCachedProjectIsIgnoredAfterAnOrgChange(t *testing.T) {
 }
 
 func TestTimeStyleRawIsByteFaithful(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--time", "raw")
 
@@ -1023,7 +974,6 @@ func TestTimeStyleRawIsByteFaithful(t *testing.T) {
 }
 
 func TestTimeStyleRelative(t *testing.T) {
-
 	h := clitest.New(t)
 	// The list's Seen column uses the compact form ("38s"), since "38 seconds ago"
 	// is too wide for a column. The detail view uses the full phrase.
@@ -1045,7 +995,6 @@ func saveConfig(t *testing.T, path string, cfg config.Config) error {
 // TestListFiltersAsksTheProject: the curated flags cannot cover a custom filter
 // an organization added, so discovery has to come from the project itself.
 func TestListFiltersAsksTheProject(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--list-filters")
 
@@ -1068,7 +1017,6 @@ func TestListFiltersAsksTheProject(t *testing.T) {
 // not authoritative. Marking a working flag as unavailable would be the worse
 // error, so it is shown with a note instead.
 func TestListFiltersTrustsVerifiedFieldsOverTheCatalogue(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--list-filters")
 
@@ -1090,7 +1038,6 @@ func TestListFiltersTrustsVerifiedFieldsOverTheCatalogue(t *testing.T) {
 // error.class and app.version are both accepted-and-ignored, verified live, so
 // neither has a flag.
 func TestNoFlagLiesAboutFiltering(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "list", "--help")
 
@@ -1103,7 +1050,6 @@ func TestNoFlagLiesAboutFiltering(t *testing.T) {
 // TestUnhandledFilterEncodes: absent means no filter at all, so an unpassed flag
 // must not filter on false.
 func TestUnhandledFilterEncodes(t *testing.T) {
-
 	h := clitest.New(t)
 	h.Run("errors", "list", "--unhandled")
 
@@ -1122,7 +1068,6 @@ func TestUnhandledFilterEncodes(t *testing.T) {
 // TestListFiltersRunsNoListQuery: it short-circuits like --dry-run, because the
 // point is to find out what could be asked for.
 func TestListFiltersRunsNoListQuery(t *testing.T) {
-
 	h := clitest.New(t)
 	h.Run("errors", "list", "--list-filters")
 
@@ -1135,7 +1080,6 @@ func TestListFiltersRunsNoListQuery(t *testing.T) {
 // TestListFiltersIsOnEveryFilteringCommand: it is registered by the same function
 // that registers the filters, so it cannot drift out of sync with them.
 func TestListFiltersIsOnEveryFilteringCommand(t *testing.T) {
-
 	for _, args := range [][]string{
 		{"errors", "list", "--list-filters"},
 		{"errors", "events", "6a3a318a90a602cb08300beb", "--list-filters"},
@@ -1151,7 +1095,6 @@ func TestListFiltersIsOnEveryFilteringCommand(t *testing.T) {
 // TestUnknownSubcommandIsAUsageError: cobra's default is to print the parent's
 // help and exit 0, which makes a typo look like success.
 func TestUnknownSubcommandIsAUsageError(t *testing.T) {
-
 	for _, args := range [][]string{
 		{"project", "nonsense"},
 		{"errors", "nonsense"},
@@ -1169,7 +1112,6 @@ func TestUnknownSubcommandIsAUsageError(t *testing.T) {
 // TestGroupCommandWithNoArgsShowsHelp and succeeds, which is what someone
 // exploring the tree expects.
 func TestGroupCommandWithNoArgsShowsHelp(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("project")
 
@@ -1181,7 +1123,6 @@ func TestGroupCommandWithNoArgsShowsHelp(t *testing.T) {
 // which is why nobody could tell whether the flag worked: it does, but only when
 // the notifier uploaded source.
 func TestCodeShowsSnippetsWhenPresent(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("errors", "event", "ev00000000000000000001", "--code")
 
@@ -1194,7 +1135,6 @@ func TestCodeShowsSnippetsWhenPresent(t *testing.T) {
 // TestCodeSaysWhenThereIsNoSource: silently printing nothing looks like a broken
 // flag, when the real answer is that the event carries no source.
 func TestCodeSaysWhenThereIsNoSource(t *testing.T) {
-
 	h := clitest.New(t)
 	// A full report whose frames carry no code at all.
 	h.Server.LatestEvent = []byte(`{

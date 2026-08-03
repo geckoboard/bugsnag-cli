@@ -34,7 +34,6 @@ func responseTypes() map[string]any {
 // have. If an upstream spec refresh introduces a new `type: number` count, this
 // fails and the fix is a new overlay action.
 func TestNoFloat32(t *testing.T) {
-
 	for name, v := range responseTypes() {
 		t.Run(name, func(t *testing.T) {
 			walk(t, reflect.TypeOf(v).Elem(), name, map[reflect.Type]bool{})
@@ -72,7 +71,6 @@ func walk(t *testing.T, typ reflect.Type, path string, seen map[reflect.Type]boo
 // column_number a string despite the API returning an integer. Left unpatched,
 // every JS/Node event fails to unmarshal and takes the text path down.
 func TestFrameNumbersAreInts(t *testing.T) {
-
 	t.Run("snake_case full report", func(t *testing.T) {
 		var f bugsnagapi.UnderscoreEventExceptionStacktrace
 		err := json.Unmarshal([]byte(`{"line_number":105,"column_number":13}`), &f)
@@ -97,7 +95,6 @@ func TestFrameNumbersAreInts(t *testing.T) {
 // TestReopenRulesIsAnObject guards reopen_rules against being typed as a bool,
 // which would fail outright on any error carrying one.
 func TestReopenRulesIsAnObject(t *testing.T) {
-
 	body := `{"id":"abc","reopen_rules":{"reopen_if":"n_occurrences_in_m_hours","occurrences":10,"hours":2}}`
 
 	var got bugsnagapi.ErrorApiView
@@ -115,7 +112,6 @@ func TestReopenRulesIsAnObject(t *testing.T) {
 // reintroduces them, the generated encoder silently starts producing wrong
 // query strings, so fail here instead.
 func TestFilterParamsAreAbsent(t *testing.T) {
-
 	typ := reflect.TypeFor[bugsnagapi.ListProjectErrorsParams]()
 	for i := range typ.NumField() {
 		tag := typ.Field(i).Tag.Get("json")

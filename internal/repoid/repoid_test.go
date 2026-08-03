@@ -12,7 +12,6 @@ import (
 // these name one repository and must produce one config key, or the same repo
 // gets a second cache entry and autodetect runs again.
 func TestCanonicalCollapsesEquivalentForms(t *testing.T) {
-
 	const want = repoid.Identity("github.com/example-org/example-api")
 
 	for _, remote := range []string{
@@ -41,7 +40,6 @@ func TestCanonicalCollapsesEquivalentForms(t *testing.T) {
 // collapsing them onto the upstream identity would report the wrong project's
 // errors.
 func TestForksStayDistinct(t *testing.T) {
-
 	mine, _ := repoid.Canonical("git@github.com:glenmailer/example-api.git")
 	theirs, _ := repoid.Canonical("git@github.com:example-org/example-api.git")
 
@@ -51,7 +49,6 @@ func TestForksStayDistinct(t *testing.T) {
 // TestDifferentHostsStayDistinct: the same path on another host is another
 // repository.
 func TestDifferentHostsStayDistinct(t *testing.T) {
-
 	gh, _ := repoid.Canonical("git@github.com:example-org/example-api.git")
 	gl, _ := repoid.Canonical("git@gitlab.com:example-org/example-api.git")
 
@@ -59,7 +56,6 @@ func TestDifferentHostsStayDistinct(t *testing.T) {
 }
 
 func TestCanonicalRejectsUnusableRemotes(t *testing.T) {
-
 	for _, remote := range []string{
 		"",
 		"   ",
@@ -74,7 +70,6 @@ func TestCanonicalRejectsUnusableRemotes(t *testing.T) {
 }
 
 func TestFromRemotesPreference(t *testing.T) {
-
 	for _, tc := range []struct {
 		name    string
 		remotes map[string]string
@@ -135,7 +130,6 @@ func TestFromRemotesPreference(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-
 			got, remote, ok := repoid.FromRemotes(tc.remotes)
 			assert.Equal(t, ok, tc.ok)
 			if !ok {
@@ -148,7 +142,6 @@ func TestFromRemotesPreference(t *testing.T) {
 }
 
 func TestRepoName(t *testing.T) {
-
 	for _, tc := range []struct {
 		id   repoid.Identity
 		name string

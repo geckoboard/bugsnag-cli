@@ -14,7 +14,6 @@ import (
 )
 
 func TestVersion(t *testing.T) {
-
 	for _, args := range [][]string{{"version"}, {"--version"}} {
 		var stdout, stderr bytes.Buffer
 		code := cli.Main(context.Background(), cli.IO{
@@ -34,7 +33,6 @@ func TestVersion(t *testing.T) {
 // TestErrorsGoToStderrOnly: errors go to stderr, never stdout, so they cannot
 // corrupt a pipeline reading the JSON.
 func TestErrorsGoToStderrOnly(t *testing.T) {
-
 	var stdout, stderr bytes.Buffer
 	code := cli.Main(context.Background(), cli.IO{
 		Args:    []string{"nonsense"},
