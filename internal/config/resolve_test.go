@@ -95,7 +95,6 @@ func TestResolvePrecedence(t *testing.T) {
 // TestResolveTokenComesFromTheConfig: there is no --token flag, so a token can
 // only have been written by `bugsnag auth login`.
 func TestResolveTokenComesFromTheConfig(t *testing.T) {
-
 	got, err := config.Resolve(config.Resolver{
 		Flags:  flags(map[string]string{"token": "from-flag"}),
 		Config: config.Config{Token: "from-config"},

@@ -43,7 +43,6 @@ func get(t *testing.T, url string) *http.Request {
 }
 
 func TestSetsAuthAndHeaders(t *testing.T) {
-
 	var gotAuth, gotAgent, gotAccept, gotVersion string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotAuth = r.Header.Get("Authorization")
@@ -70,7 +69,6 @@ func TestSetsAuthAndHeaders(t *testing.T) {
 // request must fail, and that server must record no request at all: it is not
 // enough for the token to be absent from a request that was still sent.
 func TestTokenNeverReachesADisallowedHost(t *testing.T) {
-
 	var attackerHits atomic.Int64
 	var sawToken atomic.Bool
 	attacker := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +105,6 @@ func TestTokenNeverReachesADisallowedHost(t *testing.T) {
 // TestRefusesPlaintextToARemoteHost: the token must not go out over http, but
 // loopback stays usable so tests can point at a local server.
 func TestRefusesPlaintextToARemoteHost(t *testing.T) {
-
 	c, err := transport.New(transport.Options{
 		Token: testToken,
 		Hosts: []string{"api.bugsnag.com", "evil.example"},
@@ -122,7 +119,6 @@ func TestRefusesPlaintextToARemoteHost(t *testing.T) {
 }
 
 func TestNewRequiresATokenAndAHost(t *testing.T) {
-
 	_, err := transport.New(transport.Options{Hosts: []string{"api.bugsnag.com"}})
 	assert.Assert(t, err != nil, "expected an error with no token")
 	assert.Equal(t, exitcode.Of(err), exitcode.Auth)
@@ -132,7 +128,6 @@ func TestNewRequiresATokenAndAHost(t *testing.T) {
 }
 
 func TestRetriesRateLimitAndServerErrors(t *testing.T) {
-
 	for _, tc := range []struct {
 		name   string
 		status int
@@ -141,7 +136,6 @@ func TestRetriesRateLimitAndServerErrors(t *testing.T) {
 		{"server error", http.StatusInternalServerError},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-
 			var hits atomic.Int64
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				if hits.Add(1) < 3 {
@@ -164,7 +158,6 @@ func TestRetriesRateLimitAndServerErrors(t *testing.T) {
 }
 
 func TestDoesNotRetryClientErrors(t *testing.T) {
-
 	for _, status := range []int{http.StatusBadRequest, http.StatusUnauthorized, http.StatusNotFound} {
 		var hits atomic.Int64
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -183,7 +176,6 @@ func TestDoesNotRetryClientErrors(t *testing.T) {
 
 // TestNeverRetriesPOST: a retried comment would post twice.
 func TestNeverRetriesPOST(t *testing.T) {
-
 	var hits atomic.Int64
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		hits.Add(1)
@@ -205,7 +197,6 @@ func TestNeverRetriesPOST(t *testing.T) {
 // TestHonoursRetryAfter: the server knows its own limit better than our backoff
 // curve does.
 func TestHonoursRetryAfter(t *testing.T) {
-
 	var hits atomic.Int64
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if hits.Add(1) == 1 {
@@ -230,7 +221,6 @@ func TestHonoursRetryAfter(t *testing.T) {
 }
 
 func TestGivesUpAfterMaxAttempts(t *testing.T) {
-
 	var hits atomic.Int64
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		hits.Add(1)
@@ -251,7 +241,6 @@ func TestGivesUpAfterMaxAttempts(t *testing.T) {
 // TestContextCancellationIsImmediate: Ctrl-C during a backoff must not wait out
 // the delay, and must report as cancelled rather than as a network failure.
 func TestContextCancellationIsImmediate(t *testing.T) {
-
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusTooManyRequests)
 	}))
@@ -292,7 +281,6 @@ func TestContextCancellationIsImmediate(t *testing.T) {
 }
 
 func TestNetworkFailureIsClassified(t *testing.T) {
-
 	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 	url := srv.URL
 	c := newClient(t, srv)
@@ -305,7 +293,6 @@ func TestNetworkFailureIsClassified(t *testing.T) {
 }
 
 func TestAllowlistAcceptsHostFormsAndIsCaseInsensitive(t *testing.T) {
-
 	for _, host := range []string{
 		"api.bugsnag.com",
 		"https://api.bugsnag.com",

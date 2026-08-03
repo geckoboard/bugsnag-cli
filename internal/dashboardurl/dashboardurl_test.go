@@ -12,7 +12,6 @@ import (
 // ones, because the shape is the whole contract and it is not documented
 // anywhere.
 func TestParseRealURLs(t *testing.T) {
-
 	for _, tc := range []struct {
 		name string
 		raw  string
@@ -64,7 +63,6 @@ func TestParseRealURLs(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-
 			got, err := dashboardurl.Parse(tc.raw)
 			assert.NilError(t, err)
 			assert.Equal(t, got.OrgSlug, tc.want.OrgSlug)
@@ -81,7 +79,6 @@ func TestParseRealURLs(t *testing.T) {
 // holds a live token, so every one of these is a refusal rather than something to
 // sanitise and carry on with.
 func TestParseRefusesHostileURLs(t *testing.T) {
-
 	for name, raw := range map[string]string{
 		"another host entirely":    "https://evil.test/example-org/example-api/errors/63eb71ee1aac6900084b64c4",
 		"a lookalike host":         "https://app.bugsnag.com.evil.test/example-org/example-api/errors/63eb71ee1aac6900084b64c4",
@@ -108,7 +105,6 @@ func TestParseRefusesHostileURLs(t *testing.T) {
 // TestIsURLDoesNotGuess: an error id and an event id are both 24 hex characters,
 // so only an explicit scheme makes something a URL.
 func TestIsURLDoesNotGuess(t *testing.T) {
-
 	for raw, want := range map[string]bool{
 		"https://app.bugsnag.com/example-org/example-api/errors/63eb": true,
 		"http://app.bugsnag.com/example-org/example-api/errors/63eb":  true,
@@ -123,7 +119,6 @@ func TestIsURLDoesNotGuess(t *testing.T) {
 // TestSeveralValuesOnOneFieldAreKept, since the dashboard can carry more than one
 // and the API reads them as alternatives.
 func TestSeveralValuesOnOneFieldAreKept(t *testing.T) {
-
 	ref, err := dashboardurl.Parse("https://app.bugsnag.com/o/p/errors" +
 		"?filters[error.status]=open&filters[error.status]=fixed")
 	assert.NilError(t, err)

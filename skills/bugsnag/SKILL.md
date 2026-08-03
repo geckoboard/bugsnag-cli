@@ -155,3 +155,18 @@ remote:
 bugsnag project show                 # which project this repository resolves to
 bugsnag project link <project-id>    # pin it when detection is wrong
 ```
+
+## Last resort: the raw API
+
+The commands above cover error and event work; reach past them only for something
+they genuinely do not do, such as releases or teams.
+
+```sh
+bugsnag api --list-paths                              # the catalogue
+bugsnag api '/projects/{project_id}/releases' --spec  # what that path takes
+bugsnag api '/projects/{project_id}/releases' --query per_page=5
+```
+
+Quote the path — braces and query strings are shell syntax. `--spec` prints the
+endpoint's own YAML, so read it before guessing a parameter. The response is the
+API's own shape, unrendered, and none of the caveats above apply to it.

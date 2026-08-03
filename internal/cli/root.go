@@ -75,6 +75,7 @@ func newRootCmd(d IO) *cobra.Command {
 		newProjectCmd(a),
 		newErrorsCmd(a),
 		newViewCmd(a),
+		newAPICmd(a),
 	)
 
 	return root

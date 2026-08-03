@@ -35,7 +35,6 @@ func ttyMode() render.Mode {
 }
 
 func TestDocStructure(t *testing.T) {
-
 	d := render.New(pipeMode())
 	d.H1("Errors — example-api")
 	d.Text("11 errors · %s · last 30d", render.Code("status:open"))
@@ -50,10 +49,8 @@ func TestDocStructure(t *testing.T) {
 // TestDocumentStartsWithItsTitle is the cheapest possible check that the laid-out
 // path ran rather than something falling through to a raw JSON dump.
 func TestDocumentStartsWithItsTitle(t *testing.T) {
-
 	for name, m := range map[string]render.Mode{"piped": pipeMode(), "tty": ttyMode()} {
 		t.Run(name, func(t *testing.T) {
-
 			d := render.New(m)
 			d.H1("Errors — example-api")
 			d.Text("nothing else")
@@ -68,7 +65,6 @@ func TestDocumentStartsWithItsTitle(t *testing.T) {
 // and is not an output format: piped, a code span is its contents and an escape
 // is the character it was protecting.
 func TestInlineNotationNeverReachesTheReader(t *testing.T) {
-
 	d := render.New(pipeMode())
 	d.Line("%s · %s", render.Code("*fmt.wrapError"), render.Escape("a_b *c* d|e"))
 	d.Footer("More: **bold** and _italic_ and %s", render.Code("`quoted`"))
@@ -83,7 +79,6 @@ func TestInlineNotationNeverReachesTheReader(t *testing.T) {
 // TestUnmatchedMarkersStayLiteral: an unclosed marker is content, not a licence
 // to eat the rest of the line.
 func TestUnmatchedMarkersStayLiteral(t *testing.T) {
-
 	d := render.New(pipeMode())
 	d.Line("a ` b ** c _ d")
 
@@ -95,7 +90,6 @@ func TestUnmatchedMarkersStayLiteral(t *testing.T) {
 // both markers: a release stage list came out as "preprod, stagingeu" and a
 // dashboard link lost its query parameter.
 func TestMarkersInsideAWordAreLiteral(t *testing.T) {
-
 	for _, in := range []string{
 		"pre_prod, staging_eu",
 		"pre_release · version 1.2.3_beta",
@@ -113,7 +107,6 @@ func TestMarkersInsideAWordAreLiteral(t *testing.T) {
 // TestNotationStillWorksAtWordBoundaries: the intraword rule must not disarm the
 // notation the views actually use.
 func TestNotationStillWorksAtWordBoundaries(t *testing.T) {
-
 	for in, want := range map[string]string{
 		"_(empty)_":                    "(empty)",
 		"**Caused by** x":              "Caused by x",
@@ -130,7 +123,6 @@ func TestNotationStillWorksAtWordBoundaries(t *testing.T) {
 // then removes again — reassembling it. An error message could otherwise colour
 // itself or set the terminal title.
 func TestControlCharactersCannotReachTheTerminal(t *testing.T) {
-
 	hostile := "boom \x1b[31mRED\x1b[0m \x1b]0;pwned\x07 end"
 
 	d := render.New(pipeMode())
@@ -152,7 +144,6 @@ func TestControlCharactersCannotReachTheTerminal(t *testing.T) {
 // TestItemBlockLayout covers the stack-trace layout: the lines of a block stay
 // separate lines, and continuations line up under the first.
 func TestItemBlockLayout(t *testing.T) {
-
 	d := render.New(pipeMode())
 	d.Item().
 		Line("%s · %s", render.Code("models/manager.go:105"), render.Code("(*Manager).Upsert")).
@@ -166,7 +157,6 @@ func TestItemBlockLayout(t *testing.T) {
 }
 
 func TestItemsAreNumberedInOrder(t *testing.T) {
-
 	d := render.New(pipeMode())
 	for _, class := range []string{"first", "second", "third"} {
 		d.Item().Line("%s", class).Done()
@@ -180,7 +170,6 @@ func TestItemsAreNumberedInOrder(t *testing.T) {
 
 // TestParagraphsWrapToTheContentWidth, measured in terminal cells.
 func TestParagraphsWrapToTheContentWidth(t *testing.T) {
-
 	m := ttyMode()
 	m.Width = 40
 	d := render.New(m)
@@ -196,7 +185,6 @@ func TestParagraphsWrapToTheContentWidth(t *testing.T) {
 // state: a newline in an error message would break the line it is dropped into,
 // so it becomes a space on the way in and stays one.
 func TestEscapeFlattensWhitespace(t *testing.T) {
-
 	for _, tc := range []struct {
 		name string
 		in   string
@@ -217,7 +205,6 @@ func TestEscapeFlattensWhitespace(t *testing.T) {
 // reader sees back unchanged. Escape and the inline pass are two halves of one
 // mechanism and neither is useful without the other.
 func TestEscapeRoundTrips(t *testing.T) {
-
 	for _, in := range []string{
 		"*fmt.wrapError",
 		"some_field_name",

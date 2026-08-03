@@ -23,7 +23,6 @@ func dashURL(path string) string {
 // second renderer: whatever `view` shows, the command it names on stderr shows
 // byte for byte.
 func TestViewIsTheLongFormCommand(t *testing.T) {
-
 	for name, tc := range map[string]struct {
 		url  string
 		long []string
@@ -46,7 +45,6 @@ func TestViewIsTheLongFormCommand(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-
 			h := clitest.New(t)
 			viaURL := h.Run("view", tc.url)
 			assert.Equal(t, viaURL.Code, exitcode.OK, "view failed, stderr:\n%s", viaURL.Stderr)
@@ -64,7 +62,6 @@ func TestViewIsTheLongFormCommand(t *testing.T) {
 // going through the flags, so the rule that full scope lifts the cap has to come
 // from the one shared helper, not be restated here where it could drift.
 func TestViewAllLiftsTheFrameCapToo(t *testing.T) {
-
 	h := clitest.New(t)
 	var frames []string
 	for i := 1; i <= 20; i++ {
@@ -88,7 +85,6 @@ func TestViewAllLiftsTheFrameCapToo(t *testing.T) {
 // TestViewNamesTheEquivalentCommand on stderr, so the next and more specific step
 // is something to read off rather than work out.
 func TestViewNamesTheEquivalentCommand(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("view", dashURL("?filters[error.status]=open&filters[event.since]=30d"))
 
@@ -103,7 +99,6 @@ func TestViewNamesTheEquivalentCommand(t *testing.T) {
 // TestViewAppliesTheURLsFilters, translated into the CLI's own encoding rather
 // than forwarded, so one request shape reaches the API.
 func TestViewAppliesTheURLsFilters(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("view", dashURL("?filters[error.status]=open&filters[event.since]=30d"))
 
@@ -125,7 +120,6 @@ func TestViewAppliesTheURLsFilters(t *testing.T) {
 // like a filter that matched everything, which is the failure this tool exists to
 // avoid.
 func TestViewNamesWhatItIgnored(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("view", dashURL("/6a3a318a90a602cb08300beb?event_id=ev00000000000000000001&i=sk&m=nw"))
 
@@ -136,7 +130,6 @@ func TestViewNamesWhatItIgnored(t *testing.T) {
 // TestViewSaysWhenFiltersCannotApply: a single error is fetched by id, so filter
 // state in its URL has nothing to act on.
 func TestViewSaysWhenFiltersCannotApply(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("view", dashURL("/6a3a318a90a602cb08300beb?filters[error.status]=open"))
 
@@ -151,7 +144,6 @@ func TestViewSaysWhenFiltersCannotApply(t *testing.T) {
 // flag is passed through rather than dropped. What catches a field the API
 // ignores is the rows that come back, not a refusal up front.
 func TestViewForwardsAFieldWithNoFlagOfItsOwn(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("view", dashURL("?filters[event.class]=TypeError"))
 
@@ -173,7 +165,6 @@ func TestViewForwardsAFieldWithNoFlagOfItsOwn(t *testing.T) {
 // Across one organization's 49 projects there were 22 distinct metaData ids, each
 // present in exactly one project.
 func TestViewPassesThroughACustomField(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("view", dashURL("?filters[metaData.Query.widget_key]=abc123"))
 
@@ -193,7 +184,6 @@ func TestViewPassesThroughACustomField(t *testing.T) {
 // TestViewUsesTheProjectFromTheURL, for that run only. Persisting it is what
 // `project link` is for.
 func TestViewUsesTheProjectFromTheURL(t *testing.T) {
-
 	h := clitest.New(t)
 	// A repository that would otherwise autodetect to example-api, and a URL naming a
 	// different project.
@@ -209,7 +199,6 @@ func TestViewUsesTheProjectFromTheURL(t *testing.T) {
 // TestViewRefusesAnotherOrganisation: the configured token may have no access to
 // it, and quietly querying elsewhere would be worse than stopping.
 func TestViewRefusesAnotherOrganisation(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("view", "https://app.bugsnag.com/acme/example-api/errors/6a3a318a90a602cb08300beb")
 
@@ -221,7 +210,6 @@ func TestViewRefusesAnotherOrganisation(t *testing.T) {
 // TestViewRefusesABareID: an error id and an event id are indistinguishable, so
 // guessing which was meant is not on.
 func TestViewRefusesABareID(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("view", "6a3a318a90a602cb08300beb")
 
@@ -231,7 +219,6 @@ func TestViewRefusesABareID(t *testing.T) {
 
 // TestViewRefusesAForeignHost. A pasted URL never decides where the token goes.
 func TestViewRefusesAForeignHost(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("view", "https://app.bugsnag.com.evil.test/example-org/example-api/errors/6a3a318a90a602cb08300beb")
 
@@ -245,7 +232,6 @@ func TestViewRefusesAForeignHost(t *testing.T) {
 
 // TestViewConflictingProjectIsAUsageError rather than a precedence puzzle.
 func TestViewConflictingProjectIsAUsageError(t *testing.T) {
-
 	h := clitest.New(t)
 	got := h.Run("view", dashURL("/6a3a318a90a602cb08300beb"), "--project", "p-worker")
 
