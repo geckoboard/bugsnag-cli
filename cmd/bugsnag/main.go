@@ -20,18 +20,24 @@ import (
 )
 
 func main() {
+	os.Exit(run())
+}
+
+// run returns the exit code rather than calling os.Exit itself, so that the
+// deferred teardown below is not skipped.
+func run() int {
 	// Signal handling lives here rather than in internal/cli, so that package
 	// has no process-global state.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	os.Exit(cli.Main(ctx, cli.IO{
+	return cli.Main(ctx, cli.IO{
 		Args:    os.Args[1:],
 		Stdin:   os.Stdin,
 		Stdout:  os.Stdout,
 		Stderr:  os.Stderr,
 		Version: version(),
-	}))
+	})
 }
 
 // version is read from the build info rather than stamped in with -ldflags, so a
