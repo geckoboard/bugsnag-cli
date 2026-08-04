@@ -8,11 +8,10 @@ import (
 	"sync"
 	"testing"
 
-	"gotest.tools/v3/assert"
-	is "gotest.tools/v3/assert/cmp"
-
 	"github.com/geckoboard/bugsnag-cli/internal/config"
 	"github.com/geckoboard/bugsnag-cli/internal/exitcode"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 )
 
 func TestPath(t *testing.T) {

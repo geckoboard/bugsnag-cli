@@ -109,7 +109,7 @@ func NewServer(t *testing.T) *Server {
 	})
 
 	s.Server = httptest.NewServer(mux)
-	t.Cleanup(s.Server.Close)
+	t.Cleanup(s.Close)
 	return s
 }
 
@@ -338,7 +338,7 @@ func (s *Server) writePage(w http.ResponseWriter, r *http.Request, items []json.
 	w.Header().Set("X-Ratelimit-Limit", "30")
 
 	if end < len(items) {
-		next := fmt.Sprintf("%s%s?%s", s.Server.URL, r.URL.Path, nextQuery(r, encodeCursor(end)))
+		next := fmt.Sprintf("%s%s?%s", s.URL, r.URL.Path, nextQuery(r, encodeCursor(end)))
 		w.Header().Set("Link", fmt.Sprintf(`<%s>; rel="next"`, next))
 	}
 

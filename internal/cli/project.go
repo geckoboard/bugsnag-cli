@@ -8,14 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
-
 	"github.com/geckoboard/bugsnag-cli/internal/apierr"
 	"github.com/geckoboard/bugsnag-cli/internal/bugsnagapi"
 	"github.com/geckoboard/bugsnag-cli/internal/bugsnagio"
 	"github.com/geckoboard/bugsnag-cli/internal/config"
 	"github.com/geckoboard/bugsnag-cli/internal/render"
 	"github.com/geckoboard/bugsnag-cli/internal/repoid"
+	"github.com/spf13/cobra"
 )
 
 func newProjectCmd(a *app) *cobra.Command {

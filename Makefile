@@ -1,7 +1,12 @@
 SPEC := api/openapi/bugsnag-data-access-api.yaml
 SPEC_URL := https://api.swaggerhub.com/apis/smartbear-public/bugsnag-data-access-api/2/swagger.yaml
 
-.PHONY: all build test lint vet fmt generate verify-codegen update-spec clean
+# Pinned so CI and a developer lint against the same version. Kept in step with
+# the version in our other Go repos.
+LINT_VERSION := 2.11.4
+LINT := ./bin/golangci-lint
+
+.PHONY: all build test lint fmt generate verify-codegen update-spec clean
 
 all: build
 
@@ -14,14 +19,18 @@ build:
 test:
 	go tool gotestsum $(if $(JUNIT),--junitfile $(JUNIT),) -- -race -shuffle=on -count=1 ./...
 
-vet:
-	go vet ./...
+# govet and staticcheck run as part of this, so there is no separate target for
+# either. JUNIT behaves as it does for test.
+lint: $(LINT)
+	$(LINT) run $(if $(JUNIT),--output.text.path stdout --output.junit-xml.path $(JUNIT),)
 
-lint: vet
-	go tool staticcheck ./...
+# Applies the import grouping and gofmt rules that lint reports on.
+fmt: $(LINT)
+	$(LINT) fmt
 
-fmt:
-	go fmt ./...
+# Rebuilt whenever the pinned version here changes.
+$(LINT): Makefile
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ./bin v$(LINT_VERSION)
 
 generate:
 	go generate ./...
@@ -39,4 +48,4 @@ update-spec:
 	$(MAKE) generate
 
 clean:
-	rm -f bugsnag
+	rm -rf bugsnag bin

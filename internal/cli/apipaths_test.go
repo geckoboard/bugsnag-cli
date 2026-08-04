@@ -3,9 +3,8 @@ package cli
 import (
 	"testing"
 
-	"gotest.tools/v3/assert"
-
 	"github.com/geckoboard/bugsnag-cli/api/openapi"
+	"gotest.tools/v3/assert"
 )
 
 // TestEveryMappedPathIsRealKeeps the catalogue's steer away from the raw

@@ -30,7 +30,7 @@ jobs:
       - run:
           name: Lint
           when: always
-          command: make lint
+          command: make lint JUNIT=test-results/lint-junit.xml
       - run:
           name: Verify codegen
           when: always

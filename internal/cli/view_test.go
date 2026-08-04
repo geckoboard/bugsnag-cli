@@ -6,11 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"gotest.tools/v3/assert"
-	is "gotest.tools/v3/assert/cmp"
-
 	"github.com/geckoboard/bugsnag-cli/internal/clitest"
 	"github.com/geckoboard/bugsnag-cli/internal/exitcode"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 )
 
 // url builds a dashboard URL for the fixture project, in the shape the dashboard
@@ -192,6 +191,7 @@ func TestViewUsesTheProjectFromTheURL(t *testing.T) {
 	assert.Equal(t, got.Code, exitcode.OK, "stderr:\n%s", got.Stderr)
 	assert.Check(t, is.Contains(got.Stdout, "worker"))
 	repo, ok := h.Config().Repos["github.com/example-org/example-api"]
+	//nolint:staticcheck // absent is fine; only present-and-set is the failure
 	assert.Check(t, !(ok && repo.ProjectID == "p-worker"),
 		"a project from a URL must not be written to the config")
 }

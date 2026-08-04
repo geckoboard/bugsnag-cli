@@ -1,0 +1,113 @@
+version: "2"
+run:
+  allow-parallel-runners: true
+linters:
+  default: none
+  enable:
+    - bodyclose
+    - gocritic
+    - govet
+    - ineffassign
+    - misspell
+    - prealloc
+    - staticcheck
+    - unused
+  settings:
+    gocritic:
+      disable-all: true
+      enabled-checks:
+        - argOrder
+        - appendAssign
+        - assignOp
+        - badCall
+        - badCond
+        - captLocal
+        - caseOrder
+        - codegenComment
+        - commentFormatting
+        - defaultCaseOrder
+        - deprecatedComment
+        - dupArg
+        - dupBranchBody
+        - dupCase
+        - dupSubExpr
+        - exitAfterDefer
+        - flagDeref
+        - flagName
+        - mapKey
+        - newDeref
+        - offBy1
+        - regexpMust
+        - sloppyLen
+        - sloppyTypeAssert
+        - switchTrue
+        - typeSwitchVar
+        - underef
+        - unlambda
+        - unslice
+        - valSwap
+        - wrapperFunc
+    govet:
+      enable:
+        - appends
+        - asmdecl
+        - assign
+        - atomic
+        - atomicalign
+        - bools
+        - buildtag
+        - cgocall
+        - composites
+        - copylocks
+        - defers
+        - directive
+        - errorsas
+        - findcall
+        - framepointer
+        - httpresponse
+        - ifaceassert
+        - loopclosure
+        - lostcancel
+        - nilfunc
+        - nilness
+        - printf
+        - reflectvaluecompare
+        - shift
+        - sigchanyzer
+        - slog
+        - sortslice
+        - stdmethods
+        - stdversion
+        - stringintconv
+        - structtag
+        - testinggoroutine
+        - tests
+        - timeformat
+        - unmarshal
+        - unreachable
+        - unsafeptr
+        - unusedresult
+        - unusedwrite
+        - waitgroup
+      disable-all: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gci
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

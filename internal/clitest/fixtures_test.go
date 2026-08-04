@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"gotest.tools/v3/assert"
-
 	"github.com/geckoboard/bugsnag-cli/internal/clitest"
 	"github.com/geckoboard/bugsnag-cli/internal/view"
+	"gotest.tools/v3/assert"
 )
 
 // TestEventFixturesMatchTheAPIShape guards against a fixture drifting out of the

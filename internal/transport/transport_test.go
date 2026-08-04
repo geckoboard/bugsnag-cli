@@ -89,6 +89,7 @@ func TestTokenNeverReachesADisallowedHost(t *testing.T) {
 	c := newClient(t, allowed)
 
 	req := get(t, attacker.URL+"/steal")
+	//nolint:bodyclose // refused before a request goes out, so there is no body
 	_, err := c.Do(req)
 	assert.Assert(t, err != nil, "expected the request to be refused")
 
@@ -113,6 +114,7 @@ func TestRefusesPlaintextToARemoteHost(t *testing.T) {
 	assert.NilError(t, err)
 
 	// Allowlisted, but plaintext.
+	//nolint:bodyclose // refused before a request goes out, so there is no body
 	_, err = c.Do(get(t, "http://evil.example/steal"))
 	assert.Assert(t, err != nil, "expected plaintext to a remote host to be refused")
 	assert.Equal(t, exitcode.Of(err), exitcode.UntrustedHost)
@@ -286,6 +288,7 @@ func TestNetworkFailureIsClassified(t *testing.T) {
 	c := newClient(t, srv)
 	srv.Close() // nothing is listening now
 
+	//nolint:bodyclose // the connection fails, so there is no body
 	_, err := c.Do(get(t, url+"/errors"))
 	assert.Assert(t, err != nil, "expected a network error")
 	assert.Equal(t, exitcode.Of(err), exitcode.Network)
@@ -307,6 +310,7 @@ func TestAllowlistAcceptsHostFormsAndIsCaseInsensitive(t *testing.T) {
 		assert.NilError(t, err)
 
 		// A different host must still be refused.
+		//nolint:bodyclose // refused before a request goes out, so there is no body
 		_, err = c.Do(get(t, "https://evil.example/x"))
 		assert.Equal(t, exitcode.Of(err), exitcode.UntrustedHost,
 			"New(%q) allowed evil.example", host)

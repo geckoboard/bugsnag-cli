@@ -6,15 +6,14 @@ import (
 	"io"
 	"time"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-
 	"github.com/geckoboard/bugsnag-cli/internal/apierr"
 	"github.com/geckoboard/bugsnag-cli/internal/bugsnagio"
 	"github.com/geckoboard/bugsnag-cli/internal/config"
 	"github.com/geckoboard/bugsnag-cli/internal/filters"
 	"github.com/geckoboard/bugsnag-cli/internal/render"
 	"github.com/geckoboard/bugsnag-cli/internal/transport"
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // GitRunner reads a repository's remotes.

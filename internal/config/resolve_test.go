@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"gotest.tools/v3/assert"
-
 	"github.com/geckoboard/bugsnag-cli/internal/config"
 	"github.com/geckoboard/bugsnag-cli/internal/exitcode"
 	"github.com/geckoboard/bugsnag-cli/internal/render"
+	"gotest.tools/v3/assert"
 )
 
 // fakeFlags models a flag set the way pflag behaves: every flag has a value

@@ -4,11 +4,10 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/geckoboard/bugsnag-cli/api/openapi"
 	"gopkg.in/yaml.v3"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
-
-	"github.com/geckoboard/bugsnag-cli/api/openapi"
 )
 
 // TestReadableIsTheCatalogueOfWhatCanBeAsked. It is the whole spec rather than
@@ -101,7 +100,7 @@ func TestTheTrendPathsAreTheOnesThatAnswer(t *testing.T) {
 	endpoints, err := openapi.Readable()
 	assert.NilError(t, err)
 
-	var paths []string
+	paths := make([]string, 0, len(endpoints))
 	for _, e := range endpoints {
 		paths = append(paths, e.Path)
 	}
