@@ -3,9 +3,8 @@ package cli
 import (
 	"testing"
 
-	"gotest.tools/v3/assert"
-
 	"github.com/geckoboard/bugsnag-cli/internal/config"
+	"gotest.tools/v3/assert"
 )
 
 // matchable includes a prefix pair — campus and campus-replicator — which is what

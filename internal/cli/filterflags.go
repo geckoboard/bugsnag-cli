@@ -9,14 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/pflag"
-
 	"github.com/geckoboard/bugsnag-cli/internal/apierr"
 	"github.com/geckoboard/bugsnag-cli/internal/bugsnagapi"
 	"github.com/geckoboard/bugsnag-cli/internal/bugsnagio"
 	"github.com/geckoboard/bugsnag-cli/internal/filters"
 	"github.com/geckoboard/bugsnag-cli/internal/render"
 	"github.com/geckoboard/bugsnag-cli/internal/view"
+	"github.com/spf13/pflag"
 )
 
 // addFilterFlags registers the curated filter flags and the generic escape hatch.

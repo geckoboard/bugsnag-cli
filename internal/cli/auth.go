@@ -7,14 +7,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"github.com/geckoboard/bugsnag-cli/internal/apierr"
 	"github.com/geckoboard/bugsnag-cli/internal/bugsnagapi"
 	"github.com/geckoboard/bugsnag-cli/internal/bugsnagio"
 	"github.com/geckoboard/bugsnag-cli/internal/config"
 	"github.com/geckoboard/bugsnag-cli/internal/render"
 	"github.com/geckoboard/bugsnag-cli/internal/transport"
+	"github.com/spf13/cobra"
 )
 
 func newAuthCmd(a *app) *cobra.Command {

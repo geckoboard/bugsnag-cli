@@ -383,13 +383,13 @@ type kv struct {
 func flatten(prefix string, value any, redact bool) []kv {
 	switch v := value.(type) {
 	case map[string]any:
-		var out []kv
+		out := make([]kv, 0, len(v))
 		for _, k := range sortedKeys(v) {
 			out = append(out, flatten(prefix+"."+k, v[k], redact)...)
 		}
 		return out
 	case []any:
-		var out []kv
+		out := make([]kv, 0, len(v))
 		for i, item := range v {
 			out = append(out, flatten(fmt.Sprintf("%s[%d]", prefix, i), item, redact)...)
 		}

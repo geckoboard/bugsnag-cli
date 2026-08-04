@@ -5,12 +5,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/geckoboard/bugsnag-cli/internal/clitest"
+	"github.com/geckoboard/bugsnag-cli/internal/exitcode"
 	"gopkg.in/yaml.v3"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
-
-	"github.com/geckoboard/bugsnag-cli/internal/clitest"
-	"github.com/geckoboard/bugsnag-cli/internal/exitcode"
 )
 
 // TestAPIPassesTheResponseThrough is the point of the command: an endpoint with no

@@ -3,13 +3,12 @@ package cli
 import (
 	"net/http"
 
-	"github.com/spf13/cobra"
-
 	"github.com/geckoboard/bugsnag-cli/internal/apierr"
 	"github.com/geckoboard/bugsnag-cli/internal/bugsnagapi"
 	"github.com/geckoboard/bugsnag-cli/internal/bugsnagio"
 	"github.com/geckoboard/bugsnag-cli/internal/config"
 	"github.com/geckoboard/bugsnag-cli/internal/render"
+	"github.com/spf13/cobra"
 )
 
 func newOrgCmd(a *app) *cobra.Command {

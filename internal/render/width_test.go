@@ -6,9 +6,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"gotest.tools/v3/assert"
-
 	"github.com/geckoboard/bugsnag-cli/internal/render"
+	"gotest.tools/v3/assert"
 )
 
 // TestTruncateIsGraphemeSafe: truncation cuts on grapheme boundaries, so it never

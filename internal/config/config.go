@@ -15,10 +15,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/geckoboard/bugsnag-cli/internal/apierr"
 	"github.com/gofrs/flock"
 	"gopkg.in/yaml.v3"
-
-	"github.com/geckoboard/bugsnag-cli/internal/apierr"
 )
 
 // Config is the whole config file.

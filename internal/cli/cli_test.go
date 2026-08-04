@@ -7,12 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"gotest.tools/v3/assert"
-	is "gotest.tools/v3/assert/cmp"
-
 	"github.com/geckoboard/bugsnag-cli/internal/clitest"
 	"github.com/geckoboard/bugsnag-cli/internal/config"
 	"github.com/geckoboard/bugsnag-cli/internal/exitcode"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 )
 
 // TestErrorsListIsTheInbox is the smallest end-to-end slice through every layer:
@@ -513,6 +512,7 @@ func TestCachedProjectSkipsAutodetect(t *testing.T) {
 
 	// The second run should not repeat the project search.
 	for _, r := range h.Server.Requests()[first:] {
+		//nolint:staticcheck // the failure is a path that is both, not either
 		assert.Check(t, !(strings.Contains(r.Path, "/projects") && strings.HasSuffix(r.Path, "/projects")),
 			"the second run searched for projects again: %s?%s", r.Path, r.Raw)
 	}

@@ -53,6 +53,7 @@ func FuzzInlineResolver(f *testing.F) {
 		assert.Assert(t, !utf8.ValidString(in) || utf8.ValidString(got),
 			"plain(%q) = %q, which is not valid UTF-8", in, got)
 		for _, r := range got {
+			//nolint:staticcheck // reads as "is not a control character"
 			assert.Assert(t, !(r < 0x20 && r != '\n' && r != '\t' || r == 0x7f),
 				"plain(%q) = %q, which carries control character %#U", in, got, r)
 		}

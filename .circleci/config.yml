@@ -10,7 +10,9 @@ jobs:
     docker:
       - image: cimg/go:1.25
         environment:
-          CGO_ENABLED: 0
+          # The race detector needs cgo. This job ships no binary, so there is
+          # nothing here that wants a static build.
+          CGO_ENABLED: 1
     steps:
       - checkout
       - run: mkdir -p ./test-results
@@ -30,7 +32,7 @@ jobs:
       - run:
           name: Lint
           when: always
-          command: make lint
+          command: make lint JUNIT=test-results/lint-junit.xml
       - run:
           name: Verify codegen
           when: always

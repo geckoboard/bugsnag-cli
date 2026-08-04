@@ -4,9 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"gotest.tools/v3/assert"
-
 	"github.com/geckoboard/bugsnag-cli/internal/render"
+	"gotest.tools/v3/assert"
 )
 
 var now = time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)

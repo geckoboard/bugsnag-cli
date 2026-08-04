@@ -1,5 +1,8 @@
 /bugsnag
 
+# Pinned tools downloaded by the Makefile.
+/bin/
+
 # CI test output.
 /test-results/
 

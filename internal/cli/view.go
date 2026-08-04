@@ -7,13 +7,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"github.com/geckoboard/bugsnag-cli/internal/apierr"
 	"github.com/geckoboard/bugsnag-cli/internal/config"
 	"github.com/geckoboard/bugsnag-cli/internal/dashboardurl"
 	"github.com/geckoboard/bugsnag-cli/internal/filters"
 	"github.com/geckoboard/bugsnag-cli/internal/view"
+	"github.com/spf13/cobra"
 )
 
 // newViewCmd builds `bugsnag view <url>`.

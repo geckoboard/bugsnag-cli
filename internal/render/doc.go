@@ -213,6 +213,7 @@ func (d *Doc) writeNode(b *strings.Builder, n node, th theme) {
 // kinds are tight against each other, so consecutive fields read as one block
 // rather than as a spaced-out list.
 func needsBlankLine(prev, cur nodeKind) bool {
+	//nolint:staticcheck // "not both tight" is the rule being expressed
 	return !(tightKind(prev) && tightKind(cur))
 }
 

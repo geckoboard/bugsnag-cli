@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/geckoboard/bugsnag-cli/internal/view"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
-
-	"github.com/geckoboard/bugsnag-cli/internal/view"
 )
 
 // The four payload shapes that actually occur. These are trimmed from real

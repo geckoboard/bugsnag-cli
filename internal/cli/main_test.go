@@ -6,11 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"gotest.tools/v3/assert"
-	is "gotest.tools/v3/assert/cmp"
-
 	"github.com/geckoboard/bugsnag-cli/internal/cli"
 	"github.com/geckoboard/bugsnag-cli/internal/exitcode"
+	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 )
 
 func TestVersion(t *testing.T) {

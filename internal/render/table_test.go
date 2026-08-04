@@ -4,11 +4,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/geckoboard/bugsnag-cli/internal/render"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 	"gotest.tools/v3/golden"
-
-	"github.com/geckoboard/bugsnag-cli/internal/render"
 )
 
 // TestTablePipedIsTSV: tab-separated, unpadded, unstyled. Padding is bytes that

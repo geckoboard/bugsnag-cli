@@ -8,13 +8,12 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"github.com/geckoboard/bugsnag-cli/api/openapi"
 	"github.com/geckoboard/bugsnag-cli/internal/apierr"
 	"github.com/geckoboard/bugsnag-cli/internal/bugsnagio"
 	"github.com/geckoboard/bugsnag-cli/internal/filters"
 	"github.com/geckoboard/bugsnag-cli/internal/render"
+	"github.com/spf13/cobra"
 )
 
 // newAPICmd builds `bugsnag api <path>`.
